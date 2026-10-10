@@ -3,6 +3,7 @@ import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/consta
 import { continueGate, type KioskState } from '../../../shell/kiosk';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { sfx } from '../audio';
+import { RoofFlags } from '../flags';
 import { addGoalLayers, drawGoal, type GoalLayers } from '../goalArt';
 import { BALL, COLOUR, DATA_KEY, KICK, PLAY, SceneKey, TextureKey, WIND } from '../config';
 import { Controls } from '../controls';
@@ -11,6 +12,7 @@ import {
   ballAt,
   bonusSpot,
   clampPull,
+  flightProgress,
   goalGeometry,
   isKick,
   landingPoint,
@@ -72,6 +74,7 @@ export class Play extends Phaser.Scene {
   private aimGfx!: Phaser.GameObjects.Graphics;
   private windGfx!: Phaser.GameObjects.Graphics;
   private windLabel!: Phaser.GameObjects.BitmapText;
+  private roofFlags!: RoofFlags;
   private hintText!: Phaser.GameObjects.BitmapText;
   private hintDot!: Phaser.GameObjects.Arc;
   private ball!: Phaser.GameObjects.Image;
@@ -144,6 +147,7 @@ export class Play extends Phaser.Scene {
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
     this.layers = addGoalLayers(this);
+    this.roofFlags = new RoofFlags(this);
 
     this.bonusGlow = this.add
       .image(0, 0, TextureKey.Glow)
@@ -288,10 +292,12 @@ export class Play extends Phaser.Scene {
     const g = this.windGfx;
     g.clear();
     const { wind } = this.data_;
+    const now = windAt(this.levelTime, wind, this.level);
+    // The flags on the roof blow with the wind, whether or not there is a gauge to show it.
+    this.roofFlags.update(this.time.now, Phaser.Math.Clamp(now / WIND.most, -1, 1));
     this.windLabel.setVisible(wind !== null);
     if (!wind) return;
 
-    const now = windAt(this.levelTime, wind, this.level);
     const strength = Math.min(1, Math.abs(now) / WIND.most);
     const dir = now >= 0 ? 1 : -1;
 
@@ -422,15 +428,18 @@ export class Play extends Phaser.Scene {
 
   private fly(delta: number): void {
     this.flightMs += delta;
-    const along = Math.min(this.flightMs / KICK.flightMs, 1);
-    const at = ballAt(KICK.origin, this.landing, along, KICK.arcHeight);
+    const time = Math.min(this.flightMs / KICK.flightMs, 1);
+    // Going away it gets smaller, and covers the most ground at first: see flightProgress.
+    const { along, scale } = flightProgress(time, landScale(this.geometry.scale));
+    const at = ballAt(KICK.origin, this.landing, along, 0);
+    // The ball rises and falls with the time, and looks lower the farther away it is.
+    at.y -= KICK.arcHeight * Math.sin(Math.PI * time) * scale;
     // The wind takes more of the ball the longer it is in the air.
-    const blown = this.drift * along * along;
+    const blown = this.drift * time * time;
     at.x += blown;
-    const scale = 1 + (landScale(this.geometry.scale) - 1) * along;
     // The ball tumbles on the way.
     this.ball
-      .setFrame(String(Math.floor(along * 16) % BALL.frames))
+      .setFrame(String(Math.floor(time * 16) % BALL.frames))
       .setPosition(at.x, at.y)
       .setScale(scale);
     this.shadow
@@ -439,7 +448,7 @@ export class Play extends Phaser.Scene {
         KICK.origin.y + (this.landing.y - KICK.origin.y) * along + 7 * scale,
       )
       .setScale(scale);
-    if (along >= 1) this.land();
+    if (time >= 1) this.land();
   }
 
   /** The ball has come down: score it or lose a life, and show which. */
@@ -489,9 +498,70 @@ export class Play extends Phaser.Scene {
       this.pop(MISS_WORDS[shot.kind], popX, popY, COLOUR.miss);
     }
     this.showHud();
+    this.settleBall(shot.kind, down);
 
     const done = this.cleared.every(Boolean);
     this.time.delayedCall(PLAY.resultMs, () => (done ? this.levelCleared() : this.next()));
+  }
+
+  /**
+   * What the ball does once it has landed. In the net it ripples, and the ball drops down the
+   * mesh and bounces to rest on the ground. Over the bar or wide it goes on and out of sight.
+   * Short, it hops on the grass.
+   */
+  private settleBall(kind: ShotKind, at: Point): void {
+    const ball = this.ball;
+    const { geometry } = this;
+    if (kind === 'over' || kind === 'wide') {
+      this.tweens.add({
+        targets: ball,
+        x: at.x + (at.x - KICK.origin.x) * 0.3,
+        y: at.y - 14,
+        scale: ball.scale * 0.55,
+        alpha: 0,
+        duration: 520,
+        ease: 'Quad.easeOut',
+      });
+      return;
+    }
+    if (kind === 'short') {
+      this.tweens.add({
+        targets: ball,
+        y: at.y - 9,
+        duration: 150,
+        yoyo: true,
+        repeat: 1,
+        ease: 'Quad.easeOut',
+      });
+      return;
+    }
+
+    if (kind !== 'repeat') sfx.play('net');
+    this.ripple(at.x, at.y);
+    const ground = geometry.baseY - 3 * geometry.scale;
+    this.tweens.add({
+      targets: ball,
+      x: at.x + Phaser.Math.Between(-4, 4),
+      y: ground,
+      duration: 380 + (ground - at.y) * 5,
+      delay: 90,
+      ease: 'Bounce.easeOut',
+    });
+  }
+
+  /** Rings that spread out across the net from where a ball has hit it. */
+  private ripple(x: number, y: number): void {
+    for (let ring = 0; ring < 2; ring += 1) {
+      const wave = this.add.ellipse(x, y, 8, 6).setStrokeStyle(1, 0xffffff, 0.7).setDepth(2.2);
+      this.tweens.add({
+        targets: wave,
+        scale: 3.4 + ring,
+        alpha: 0,
+        duration: 560,
+        delay: ring * 120,
+        onComplete: () => wave.destroy(),
+      });
+    }
   }
 
   /** After a shot that did not clear the goal: another go, or the end of the lives. */
@@ -573,7 +643,13 @@ export class Play extends Phaser.Scene {
   private resetBall(): void {
     this.aimGfx.clear();
     this.aiming = false;
-    this.ball.setFrame('0').setPosition(KICK.origin.x, KICK.origin.y).setScale(1).setVisible(true);
+    this.tweens.killTweensOf(this.ball);
+    this.ball
+      .setFrame('0')
+      .setPosition(KICK.origin.x, KICK.origin.y)
+      .setScale(1)
+      .setAlpha(1)
+      .setVisible(true);
     this.restShadow.setVisible(true);
   }
 

@@ -4,6 +4,7 @@ import { stepLetter } from '../../../shell/kiosk';
 import { fetchLeaderboard, sendInitials } from '../../../shell/kioskLink';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { sfx } from '../audio';
+import { RoofFlags } from '../flags';
 import { COLOUR, SceneKey, TextureKey } from '../config';
 import { scoreRows } from '../scores';
 import { onKiosk } from '../session';
@@ -44,6 +45,7 @@ export class Over extends Phaser.Scene {
   private note!: Phaser.GameObjects.BitmapText;
   private sending = false;
   private tap: (() => void) | null = null;
+  private flags!: RoofFlags;
 
   constructor() {
     super(SceneKey.Over);
@@ -58,10 +60,15 @@ export class Over extends Phaser.Scene {
     this.tap = null;
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
+    this.flags = new RoofFlags(this);
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0);
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.wash, 0.6).setOrigin(0, 0);
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => this.tap?.());
     this.showResult();
+  }
+
+  override update(time: number): void {
+    this.flags.update(time, 0.25);
   }
 
   /** Drops what the last screen put up, and what it was waiting for. */

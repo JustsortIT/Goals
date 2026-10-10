@@ -10,7 +10,7 @@
  */
 import type Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
-import { BALL, TextureKey } from './config';
+import { BALL, ROOF_FLAG_TOP, ROOF_FLAGS, TextureKey } from './config';
 
 type Draw = (context: CanvasRenderingContext2D) => void;
 type Rgb = [number, number, number];
@@ -344,19 +344,9 @@ function drawStand(context: CanvasRenderingContext2D): void {
     rect(context, '#454d57', x, roofTop + 6, 1, 38);
   }
 
-  // Flags on the roof: the tricolour and plain colours of the home county.
-  const flags: [number, string[]][] = [
-    [96, ['#169b62', '#ffffff', '#ff883e']],
-    [184, ['#1f8a4c', '#1f8a4c', '#f2b920']],
-    [296, ['#f2b920', '#1f8a4c', '#1f8a4c']],
-    [384, ['#169b62', '#ffffff', '#ff883e']],
-  ];
-  for (const [x, colours] of flags) {
-    rect(context, '#d5dbe0', x, roofTop - 22, 1, 22);
-    colours.forEach((colour, index) =>
-      rect(context, colour, x + 1 + index * 4, roofTop - 22, 4, 7),
-    );
-    rect(context, 'rgba(0,0,0,0.18)', x + 1, roofTop - 16, 12, 1);
+  // The poles for the roof flags; the flags themselves move with the wind (`flags.ts`).
+  for (const flag of ROOF_FLAGS) {
+    rect(context, '#d5dbe0', flag.x, ROOF_FLAG_TOP, 1, 22);
   }
 }
 

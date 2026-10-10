@@ -204,3 +204,15 @@ export function windAt(timeMs: number, wind: Wind | null, level: number): number
   const gust = Math.sin((2 * Math.PI * timeMs) / wind.gustMs + level * 1.7);
   return windMost(wind, level) * (wind.steadiness * side + (1 - wind.steadiness) * gust);
 }
+
+/**
+ * How a ball flying away from the kicker looks: it gets smaller in proportion to how far off it
+ * is, so it covers the screen quickly at first and slowly at the end. `t` is the share of the
+ * flight's time gone (0 to 1); `along` is how far along the line to the landing it looks to have
+ * got, and `scale` how big it is, ending at `endScale`.
+ */
+export function flightProgress(t: number, endScale: number): { along: number; scale: number } {
+  const time = Math.min(1, Math.max(0, t));
+  const scale = 1 / (1 + (1 / endScale - 1) * time);
+  return { along: (1 - scale) / (1 - endScale), scale };
+}

@@ -125,6 +125,19 @@ cannot be played is caught. Not yet solved: making target positions by rule from
 Nothing yet. It uses the shell as it is: `sendInitials`, `fetchLeaderboard`, `stepLetter` and the
 kiosk's `sound` flag.
 
+## How the ball and the ground behave
+
+- **Flight** (`flightProgress` in `logic.ts`, tested): the ball gets smaller in proportion to how far
+  off it is, so it covers the screen fast at first and slowly at the end, and its rise and fall
+  shrink with the distance. It tumbles (12 frames) and the wind bends its path more the longer it is
+  in the air.
+- **Landing**: in the net, the mesh ripples and the ball drops down it and bounces to rest on the
+  ground (a soft thud and rustle). Over the bar or wide, it carries on and fades. Short, it hops on
+  the grass.
+- **Flags on the stand's roof** (`flags.ts`) blow the way the wind does, out straight in a strong
+  wind, rippling on a calm day, and turn with every gust, on every screen. Their poles are in the
+  backdrop picture.
+
 ## End screens, sound and hints
 
 - **Initials and scores** (`scenes/Over.ts`, `scores.ts`): the end screen shows the score and rank;

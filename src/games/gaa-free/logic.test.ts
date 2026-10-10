@@ -6,6 +6,7 @@ import {
   bonusPeriod,
   bonusSpot,
   clampPull,
+  flightProgress,
   goalGeometry,
   isKick,
   landingPoint,
@@ -315,6 +316,29 @@ describe('the wind', () => {
           expect(Math.hypot(pull.x, pull.y)).toBeLessThanOrEqual(KICK.maxPull);
         }
       }
+    }
+  });
+});
+
+describe('the ball in flight', () => {
+  it('starts and ends where it should, and gets smaller as it goes', () => {
+    expect(flightProgress(0, 0.4)).toEqual({ along: 0, scale: 1 });
+    const end = flightProgress(1, 0.4);
+    expect(end.along).toBeCloseTo(1);
+    expect(end.scale).toBeCloseTo(0.4);
+    expect(flightProgress(0.5, 0.4).scale).toBeLessThan(1);
+    expect(flightProgress(0.5, 0.4).scale).toBeGreaterThan(0.4);
+  });
+
+  it('covers the most ground first, as a ball going away does', () => {
+    const first = flightProgress(0.25, 0.4).along - flightProgress(0, 0.4).along;
+    const last = flightProgress(1, 0.4).along - flightProgress(0.75, 0.4).along;
+    expect(first).toBeGreaterThan(last * 2);
+    let before = -1;
+    for (let t = 0; t <= 1; t += 0.05) {
+      const { along } = flightProgress(t, 0.4);
+      expect(along).toBeGreaterThan(before);
+      before = along;
     }
   });
 });

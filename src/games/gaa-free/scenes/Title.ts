@@ -3,6 +3,7 @@ import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/consta
 import { kioskGate, type KioskState } from '../../../shell/kiosk';
 import { fetchKioskState, onKioskCredit } from '../../../shell/kioskLink';
 import { sfx } from '../audio';
+import { RoofFlags } from '../flags';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { COLOUR, DATA_KEY, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
@@ -21,6 +22,7 @@ export class Title extends Phaser.Scene {
   private detail!: Phaser.GameObjects.BitmapText;
   private state: KioskState | null = null;
   private starting = false;
+  private flags!: RoofFlags;
 
   constructor() {
     super(SceneKey.Title);
@@ -32,6 +34,7 @@ export class Title extends Phaser.Scene {
     this.starting = false;
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
+    this.flags = new RoofFlags(this);
     // The goal, as it stands at the first level, behind the name.
     const layers = addGoalLayers(this);
     const geometry = goalGeometry(levelScale(1, data.shrink));
@@ -73,6 +76,10 @@ export class Title extends Phaser.Scene {
       ask();
     }
     this.input.on(Phaser.Input.Events.POINTER_DOWN, () => void this.begin());
+  }
+
+  override update(time: number): void {
+    this.flags.update(time, 0.25);
   }
 
   private async ask(): Promise<void> {
