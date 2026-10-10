@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { stepLetter } from '../../../shell/kiosk';
 import { fetchLeaderboard, sendInitials } from '../../../shell/kioskLink';
-import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
+import { addText, centerText, QuizText } from '../text';
 import { sfx } from '../audio';
 import { COLOUR, SceneKey, TextureKey } from '../config';
 import { scoreRows } from '../scores';
@@ -40,8 +40,8 @@ export class Over extends Phaser.Scene {
   private made: Made[] = [];
   private timers: Phaser.Time.TimerEvent[] = [];
   private letters: string[] = ['A', 'A', 'A'];
-  private letterTexts: Phaser.GameObjects.BitmapText[] = [];
-  private note!: Phaser.GameObjects.BitmapText;
+  private letterTexts: QuizText[] = [];
+  private note!: QuizText;
   private sending = false;
   private tap: (() => void) | null = null;
 
@@ -83,9 +83,9 @@ export class Over extends Phaser.Scene {
     y: number,
     size: number = FONT_SIZE.small,
     tint: number = 0xffffff,
-  ): Phaser.GameObjects.BitmapText {
-    const text = this.keep(addPixelText(this, 0, 0, words, size).setTint(tint));
-    centerPixelText(text, GAME_WIDTH / 2, y);
+  ): QuizText {
+    const text = this.keep(addText(this, 0, 0, words, size).setTint(tint));
+    centerText(text, GAME_WIDTH / 2, y);
     return text;
   }
 
@@ -140,8 +140,8 @@ export class Over extends Phaser.Scene {
     COLUMNS.forEach((x, column) => {
       this.button(x, 98, 52, 34, '+', () => this.step(column, 1), true);
       this.button(x, 178, 52, 34, '-', () => this.step(column, -1), true);
-      const letter = this.keep(addPixelText(this, 0, 0, this.letters[column], FONT_SIZE.title));
-      centerPixelText(letter, x, 138);
+      const letter = this.keep(addText(this, 0, 0, this.letters[column], FONT_SIZE.title));
+      centerText(letter, x, 138);
       this.letterTexts.push(letter);
     });
 
@@ -173,8 +173,8 @@ export class Over extends Phaser.Scene {
         .setStrokeStyle(2, COLOUR.gold)
         .setInteractive(),
     );
-    const words = this.keep(addPixelText(this, 0, 0, label, FONT_SIZE.medium).setTint(COLOUR.gold));
-    centerPixelText(words, x, y);
+    const words = this.keep(addText(this, 0, 0, label, FONT_SIZE.medium).setTint(COLOUR.gold));
+    centerText(words, x, y);
 
     let hold: Phaser.Time.TimerEvent | null = null;
     const stop = () => {
@@ -205,14 +205,14 @@ export class Over extends Phaser.Scene {
     if (this.sending || playId === null) return;
     this.sending = true;
     this.note.setText('SENDING').setTint(COLOUR.quiet);
-    centerPixelText(this.note, GAME_WIDTH / 2, 205);
+    centerText(this.note, GAME_WIDTH / 2, 205);
     const sent = await sendInitials(playId, this.letters.join(''));
     // The player may have walked away while it was sent: this screen is no longer showing.
     if (!this.scene.isActive()) return;
     this.sending = false;
     if (sent === 'refused') {
       this.note.setText('NOT ALLOWED, TRY OTHER LETTERS').setTint(COLOUR.bad);
-      centerPixelText(this.note, GAME_WIDTH / 2, 205);
+      centerText(this.note, GAME_WIDTH / 2, 205);
       return;
     }
     this.showScores();
@@ -243,14 +243,14 @@ export class Over extends Phaser.Scene {
       if (!this.scene.isActive()) return;
       const rows = scoreRows(board, this.result.playId, ROWS);
       waiting.setText(rows.length === 0 ? 'NO SCORES YET' : '');
-      centerPixelText(waiting, GAME_WIDTH / 2, 130);
+      centerText(waiting, GAME_WIDTH / 2, 130);
       rows.forEach((row, index) => {
         const y = 76 + index * 26;
         const tint = row.mine ? COLOUR.gold : 0xffffff;
-        this.keep(addPixelText(this, 150, y - 8, String(row.rank), FONT_SIZE.medium).setTint(tint));
-        this.keep(addPixelText(this, 200, y - 8, row.initials, FONT_SIZE.medium).setTint(tint));
+        this.keep(addText(this, 150, y - 8, String(row.rank), FONT_SIZE.medium).setTint(tint));
+        this.keep(addText(this, 200, y - 8, row.initials, FONT_SIZE.medium).setTint(tint));
         const score = this.keep(
-          addPixelText(this, 0, y - 8, String(row.score), FONT_SIZE.medium).setTint(tint),
+          addText(this, 0, y - 8, String(row.score), FONT_SIZE.medium).setTint(tint),
         );
         score.setX(Math.round(332 - score.width));
       });

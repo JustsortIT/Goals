@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { kioskGate, type KioskState } from '../../../shell/kiosk';
 import { fetchKioskState, onKioskCredit } from '../../../shell/kioskLink';
-import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
+import { addText, centerText, QuizText } from '../text';
 import { sfx } from '../audio';
 import { BUTTON_COLOURS, COLOUR, DATA_KEY, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
@@ -15,8 +15,8 @@ import type { PlayData } from './Play';
  * can. With no kiosk a tap starts a free game.
  */
 export class Title extends Phaser.Scene {
-  private prompt!: Phaser.GameObjects.BitmapText;
-  private detail!: Phaser.GameObjects.BitmapText;
+  private prompt!: QuizText;
+  private detail!: QuizText;
   private state: KioskState | null = null;
   private starting = false;
 
@@ -40,16 +40,12 @@ export class Title extends Phaser.Scene {
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0).setDepth(3);
 
     const centre = GAME_WIDTH / 2;
-    const name = addPixelText(this, 0, 0, data.name, FONT_SIZE.title)
-      .setTint(COLOUR.gold)
-      .setDepth(4);
-    centerPixelText(name, centre, GAME_HEIGHT * 0.22);
-    const line = addPixelText(this, 0, 0, data.line, FONT_SIZE.medium)
-      .setTint(COLOUR.quiet)
-      .setDepth(4);
-    centerPixelText(line, centre, GAME_HEIGHT * 0.22 + 36);
-    this.prompt = addPixelText(this, 0, 0, '', FONT_SIZE.medium).setDepth(4);
-    this.detail = addPixelText(this, 0, 0, '').setTint(COLOUR.quiet).setDepth(4);
+    const name = addText(this, 0, 0, data.name, FONT_SIZE.title).setTint(COLOUR.gold).setDepth(4);
+    centerText(name, centre, GAME_HEIGHT * 0.22);
+    const line = addText(this, 0, 0, data.line, FONT_SIZE.medium).setTint(COLOUR.quiet).setDepth(4);
+    centerText(line, centre, GAME_HEIGHT * 0.22 + 46);
+    this.prompt = addText(this, 0, 0, '', FONT_SIZE.medium).setDepth(4);
+    this.detail = addText(this, 0, 0, '').setTint(COLOUR.quiet).setDepth(4);
     this.show();
 
     if (onKiosk()) {
@@ -77,8 +73,8 @@ export class Title extends Phaser.Scene {
       : { prompt: 'TAP TO START', detail: 'FREE PLAY' };
     this.prompt.setText(gate.prompt);
     this.detail.setText(gate.detail);
-    centerPixelText(this.prompt, GAME_WIDTH / 2, GAME_HEIGHT * 0.58);
-    centerPixelText(this.detail, GAME_WIDTH / 2, GAME_HEIGHT * 0.58 + KIOSK.detailGap);
+    centerText(this.prompt, GAME_WIDTH / 2, GAME_HEIGHT * 0.58);
+    centerText(this.detail, GAME_WIDTH / 2, GAME_HEIGHT * 0.58 + KIOSK.detailGap);
   }
 
   private async begin(): Promise<void> {

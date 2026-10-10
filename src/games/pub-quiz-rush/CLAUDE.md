@@ -12,7 +12,9 @@ right button in green and costs a life. Fifteen questions are asked, easy first 
 and the clock shortens each time (12 s down to 6.5 s). Get through all fifteen to win ("last orders").
 A streak of 5 right answers gives one life back.
 
-A **50/50** strip under the buttons, once a play, takes two wrong answers away (iftyFifty in logic.ts). The question it is used on scores half (iftyFiftyPoints); the streak still goes on. (Key 5 while making it.)
+A **50/50** strip under the buttons, once a play, takes two wrong answers away (`fiftyFifty` in
+`logic.ts`). The question it is used on scores half (`fiftyFiftyPoints`); the streak still goes on.
+(Key `5` while making it.)
 
 Every play uses a fresh random seed, so the questions picked and the place of the right answer
 differ each time. The right answer is stored first in `game.json` and shuffled at play time.
@@ -36,9 +38,10 @@ count carries on with the next question.
 | `logic.ts`, `logic.test.ts` | the rules as plain sums (question order, shuffle, clock, score), and tests |
 | `session.ts`                | a play as the kiosk sees it: start, coins while it lasts, one score. Keep  |
 | `scores.ts`                 | initials and the top five, through the shell                               |
+| `text.ts`                   | the game's text: a smooth bold sans-serif (see below)                      |
 | `config.ts`                 | layout, colours and timings                                                |
 | `art.ts`, `audio.ts`        | the brick wall and chalkboard, and the sounds                              |
-| `scenes/`                   | Boot (font), Title, Play (the quiz), Over (score, initials, top five)      |
+| `scenes/`                   | Boot (pictures), Title, Play (the quiz), Over (score, initials, top five)  |
 
 ## What a pub would want its own
 
@@ -53,9 +56,22 @@ count carries on with the next question.
 
 None: the wall, board and buttons are drawn in `art.ts`.
 
+## Text: NOT the pixel font
+
+This game breaks the repo rule that all text is in the shell's pixel font, on purpose and at the
+owner's request: the pixel font was hard to read in a quiz. Text is a bold sans-serif drawn by
+canvas `Text` (`text.ts`: `QuizText`, `addText`, `centerText`), at 4x resolution with smoothing on so
+it stays sharp. It still takes the sizes in `FONT_SIZE`, and the question and answers use the
+largest size that fits (`fitText` in `scenes/Play.ts`).
+
+**To carry this game into PubPixels, its text must go back to the pixel font** (swap `text.ts` for
+`addPixelText` / `centerPixelText`), or the rule must be changed there.
+
 ## How it is scaled
 
-main.ts zooms the 480 by 270 screen by a whole number (crispZoom) so every font pixel is the same size on screen, which is what keeps the text clean. If a whole number would leave wide empty borders (more than a third), it fits the window instead. On a 1920 by 1080 kiosk it is exactly 4x.
+`main.ts` zooms the 480 by 270 screen by a whole number (`crispZoom`, allowing for the display's own
+scaling) so the pictures keep even pixels. If a whole number would leave wide empty borders (more
+than a third), it fits the window instead. On a 1920 by 1080 kiosk it is exactly 4x.
 
 ## Asks of the shell
 

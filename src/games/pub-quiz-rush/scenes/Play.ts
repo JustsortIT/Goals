@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { continueGate, type KioskState } from '../../../shell/kiosk';
-import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
+import { addText, centerText, QuizText } from '../text';
 import { sfx } from '../audio';
 import { BUTTON_COLOURS, COLOUR, DATA_KEY, LAYOUT, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
@@ -31,7 +31,7 @@ type Phase = 'thinking' | 'result' | 'waiting' | 'ending';
 interface Button {
   face: Phaser.GameObjects.Rectangle;
   shine: Phaser.GameObjects.Rectangle;
-  label: Phaser.GameObjects.BitmapText;
+  label: QuizText;
 }
 
 /**
@@ -49,18 +49,18 @@ export class Play extends Phaser.Scene {
   private data_!: GameData;
   private coins!: CoinWatch;
   private buttons: Button[] = [];
-  private question!: Phaser.GameObjects.BitmapText;
+  private question!: QuizText;
   private timerBar!: Phaser.GameObjects.Graphics;
-  private scoreText!: Phaser.GameObjects.BitmapText;
-  private numberText!: Phaser.GameObjects.BitmapText;
-  private livesText!: Phaser.GameObjects.BitmapText;
-  private streakText!: Phaser.GameObjects.BitmapText;
-  private popText!: Phaser.GameObjects.BitmapText;
+  private scoreText!: QuizText;
+  private numberText!: QuizText;
+  private livesText!: QuizText;
+  private streakText!: QuizText;
+  private popText!: QuizText;
   private wash!: Phaser.GameObjects.Rectangle;
-  private countText!: Phaser.GameObjects.BitmapText;
-  private continueText!: Phaser.GameObjects.BitmapText;
+  private countText!: QuizText;
+  private continueText!: QuizText;
   private lifeline!: Phaser.GameObjects.Rectangle;
-  private lifelineText!: Phaser.GameObjects.BitmapText;
+  private lifelineText!: QuizText;
 
   /** The 50/50 is one a play. gone are the buttons it took away from the question being asked. */
   private fiftyUsed = false;
@@ -110,12 +110,12 @@ export class Play extends Phaser.Scene {
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0).setDepth(6);
     this.add.rectangle(0, 0, GAME_WIDTH, 16, 0x050301, 0.66).setOrigin(0, 0).setDepth(7);
     this.add.rectangle(0, 16, GAME_WIDTH, 1, COLOUR.gold, 0.4).setOrigin(0, 0).setDepth(7);
-    this.scoreText = addPixelText(this, 8, 4, '').setDepth(8);
-    this.numberText = addPixelText(this, 0, 4, '').setDepth(8).setTint(COLOUR.gold);
-    this.livesText = addPixelText(this, 0, 4, '').setDepth(8);
+    this.scoreText = addText(this, 8, 1, '').setDepth(8);
+    this.numberText = addText(this, 0, 1, '').setDepth(8).setTint(COLOUR.gold);
+    this.livesText = addText(this, 0, 1, '').setDepth(8);
 
     const { board } = LAYOUT;
-    this.question = addPixelText(
+    this.question = addText(
       this,
       board.x + board.width / 2,
       board.y + board.height / 2,
@@ -127,7 +127,7 @@ export class Play extends Phaser.Scene {
       .setMaxWidth(LAYOUT.questionWidth)
       .setCenterAlign();
     this.timerBar = this.add.graphics().setDepth(2);
-    this.streakText = addPixelText(this, 100, 4, '').setDepth(8).setTint(COLOUR.gold);
+    this.streakText = addText(this, 100, 1, '').setDepth(8).setTint(COLOUR.gold);
 
     // The four buttons, each a colour of its own, with a light edge so they look pressed in.
     const { button } = LAYOUT;
@@ -144,13 +144,7 @@ export class Play extends Phaser.Scene {
         .rectangle(x + 3, y + 3, button.width - 6, 6, 0xffffff, 0.22)
         .setOrigin(0, 0)
         .setDepth(4);
-      const label = addPixelText(
-        this,
-        x + button.width / 2,
-        y + button.height / 2,
-        '',
-        FONT_SIZE.medium,
-      )
+      const label = addText(this, x + button.width / 2, y + button.height / 2, '', FONT_SIZE.medium)
         .setDepth(5)
         .setMaxWidth(LAYOUT.answerWidth)
         .setCenterAlign();
@@ -164,7 +158,7 @@ export class Play extends Phaser.Scene {
       .setStrokeStyle(2, COLOUR.gold, 0.7)
       .setDepth(3)
       .setInteractive();
-    this.lifelineText = addPixelText(this, 0, 0, '', FONT_SIZE.medium).setDepth(5);
+    this.lifelineText = addText(this, 0, 0, '', FONT_SIZE.medium).setDepth(5);
     this.lifeline.on(Phaser.Input.Events.POINTER_DOWN, () => this.useFifty());
     this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
       if (event.key === '5') this.useFifty();
@@ -172,16 +166,14 @@ export class Play extends Phaser.Scene {
       if (index >= 0 && index < 4) this.choose(index);
     });
 
-    this.popText = addPixelText(this, 0, 0, '', FONT_SIZE.large).setDepth(9).setVisible(false);
+    this.popText = addText(this, 0, 0, '', FONT_SIZE.large).setDepth(9).setVisible(false);
     this.wash = this.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.wash, 0.82)
       .setOrigin(0, 0)
       .setDepth(10)
       .setVisible(false);
-    this.countText = addPixelText(this, 0, 0, '', FONT_SIZE.title).setDepth(11).setVisible(false);
-    this.continueText = addPixelText(this, 0, 0, '', FONT_SIZE.medium)
-      .setDepth(11)
-      .setVisible(false);
+    this.countText = addText(this, 0, 0, '', FONT_SIZE.title).setDepth(11).setVisible(false);
+    this.continueText = addText(this, 0, 0, '', FONT_SIZE.medium).setDepth(11).setVisible(false);
 
     this.showQuestion();
 
@@ -220,12 +212,12 @@ export class Play extends Phaser.Scene {
     this.gone = [];
 
     const { board } = LAYOUT;
-    this.fitText(this.question, this.asked.text, board.height - 2);
-    centerPixelText(this.question, board.x + board.width / 2, board.y + board.height / 2);
+    this.fitText(this.question, this.asked.text, board.height - 10);
+    centerText(this.question, board.x + board.width / 2, board.y + board.height / 2);
     this.buttons.forEach((button, index) => {
       const { x, y } = button.face;
       this.fitText(button.label, this.asked.answers[index], LAYOUT.button.height - 8);
-      centerPixelText(button.label, x + LAYOUT.button.width / 2, y + LAYOUT.button.height / 2);
+      centerText(button.label, x + LAYOUT.button.width / 2, y + LAYOUT.button.height / 2);
       button.face.setFillStyle(BUTTON_COLOURS[index]).setAlpha(1);
       button.label.setAlpha(1);
       button.shine.setAlpha(1);
@@ -237,8 +229,8 @@ export class Play extends Phaser.Scene {
   }
 
   /** Sets words in the largest size that still fits the height, because bigger words are easier to read. */
-  private fitText(text: Phaser.GameObjects.BitmapText, words: string, height: number): void {
-    for (const size of [FONT_SIZE.large, FONT_SIZE.medium]) {
+  private fitText(text: QuizText, words: string, height: number): void {
+    for (const size of [FONT_SIZE.large, 20, FONT_SIZE.medium]) {
       text.setFontSize(size).setText(words);
       if (text.height <= height) return;
     }
@@ -266,7 +258,7 @@ export class Play extends Phaser.Scene {
     this.lifelineText.setText(usable ? '50/50' : '50/50 USED');
     this.lifelineText.setTint(usable ? COLOUR.gold : COLOUR.quiet);
     const { lifeline } = LAYOUT;
-    centerPixelText(
+    centerText(
       this.lifelineText,
       lifeline.x + lifeline.width / 2,
       lifeline.y + lifeline.height / 2,
@@ -429,7 +421,7 @@ export class Play extends Phaser.Scene {
   private showHud(): void {
     this.scoreText.setText(`SCORE ${this.score}`);
     this.numberText.setText(`QUESTION ${this.number} OF ${this.data_.rounds}`);
-    centerPixelText(this.numberText, GAME_WIDTH / 2, 9);
+    centerText(this.numberText, GAME_WIDTH / 2, 8);
     this.livesText.setText(`LIVES ${Math.max(0, this.lives)}`);
     this.livesText.setX(GAME_WIDTH - 8 - this.livesText.width);
     this.streakText.setText(this.streak >= 2 ? `STREAK ${this.streak}` : '');
@@ -439,13 +431,13 @@ export class Play extends Phaser.Scene {
     const text = String(Math.max(0, Math.ceil(this.leftMs / 1000)));
     if (this.countText.text === text) return;
     this.countText.setText(text);
-    centerPixelText(this.countText, GAME_WIDTH / 2, GAME_HEIGHT * 0.5);
+    centerText(this.countText, GAME_WIDTH / 2, GAME_HEIGHT * 0.5);
   }
 
   private showContinue(state: KioskState | null): void {
     const gate = continueGate(state);
     this.continueText.setText(`${gate.prompt}  ${gate.detail}`);
-    centerPixelText(this.continueText, GAME_WIDTH / 2, GAME_HEIGHT * 0.28);
+    centerText(this.continueText, GAME_WIDTH / 2, GAME_HEIGHT * 0.28);
   }
 
   /** A word that rises from the middle of the board and fades: what the answer was worth, or that it was wrong. */
@@ -453,7 +445,7 @@ export class Play extends Phaser.Scene {
     this.tweens.killTweensOf(this.popText);
     this.popText.setText(words).setTint(tint).setAlpha(1).setVisible(true);
     const { board } = LAYOUT;
-    centerPixelText(this.popText, board.x + board.width / 2, LAYOUT.button.ys[1] - 2);
+    centerText(this.popText, board.x + board.width / 2, LAYOUT.button.ys[1] - 2);
     this.tweens.add({
       targets: this.popText,
       y: this.popText.y - 10,
