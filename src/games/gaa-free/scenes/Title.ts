@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { kioskGate, type KioskState } from '../../../shell/kiosk';
 import { fetchKioskState, onKioskCredit } from '../../../shell/kioskLink';
+import { sfx } from '../audio';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { COLOUR, DATA_KEY, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
@@ -76,6 +77,7 @@ export class Title extends Phaser.Scene {
 
   private async ask(): Promise<void> {
     this.state = await fetchKioskState();
+    if (this.state) sfx.enabled = this.state.sound;
     if (this.scene.isActive()) this.show();
   }
 

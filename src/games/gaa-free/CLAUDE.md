@@ -108,7 +108,7 @@ art would be:
   32 by 32, and a soft glow, 64 by 64. A vignette, 480 by 270.
 - No lettering in any of them; the advertising boards are blank.
 
-Words are written by the game in the pixel font: the title (14 characters), the line (30), the
+Words are written by the game in the pixel font (the end screens add `ENTER YOUR INITIALS`, `THIS WEEK`, `OK`): the title (14 characters), the line (30), the
 pop-up after each kick (`+150`, `BONUS 300`, `WIDE`, `OVER`, `SHORT`, `MISS`, `DONE`), and the banners
 (`GOAL CLEARED`, `FULL TIME`, and `WIND` / `WATCH THE FLAG` at the first windy goal), and the gauge label `WIND`.
 
@@ -122,8 +122,24 @@ cannot be played is caught. Not yet solved: making target positions by rule from
 
 ## Asks of the shell
 
-Nothing yet. The title, count and end scenes follow the template's. Initials for a high score
-are not taken.
+Nothing yet. It uses the shell as it is: `sendInitials`, `fetchLeaderboard`, `stepLetter` and the
+kiosk's `sound` flag.
+
+## End screens, sound and hints
+
+- **Initials and scores** (`scenes/Over.ts`, `scores.ts`): the end screen shows the score and rank;
+  a tap goes to three initials if the server asked for them (`asksInitials`), each letter with a
+  big + and - button that repeats while held, and OK sends them (`sendInitials`). A refused word
+  (422) says so and asks again; no answer, or no tap for 30 s, goes on without. Then the week's top
+  five (`fetchLeaderboard`), the player's own place in gold, even if it came lower. With no kiosk
+  none of this is shown and the title returns.
+- **Sound** (`audio.ts`): made in code with Web Audio, nothing to download: a kick, a ping for a
+  target, a rising run for the bonus, a miss, a cheer for a goal cleared and a longer one for a win,
+  and a low murmur of the crowd during a play. It wakes on the first touch, and stays silent if the
+  kiosk says the venue is silenced (`KioskState.sound`), even part way through a play. Phaser's own
+  audio is off.
+- **Hint**: after 6 s with no touch on a ball ready to kick, the words PULL BACK AND LET GO and a
+  finger dragging down appear, and go at the next touch. For a first-time player on a kiosk.
 
 ## Not decided / ideas
 

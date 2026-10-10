@@ -23,7 +23,7 @@ export function run(data: GameData): void {
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
     },
-    // This game has no sound. Take this out when it gets some.
+    // Sounds are made in audio.ts with the browser's own audio, not by Phaser.
     audio: { noAudio: true },
     // One finger is all this game uses.
     input: { activePointers: 1 },

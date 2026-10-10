@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { continueGate, type KioskState } from '../../../shell/kiosk';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
+import { sfx } from '../audio';
 import { addGoalLayers, drawGoal, type GoalLayers } from '../goalArt';
 import { BALL, COLOUR, DATA_KEY, KICK, PLAY, SceneKey, TextureKey, WIND } from '../config';
 import { Controls } from '../controls';
@@ -45,6 +46,9 @@ const MISS_WORDS: Record<Exclude<ShotKind, 'hit' | 'bonus'>, string> = {
   short: 'SHORT',
 };
 
+/** How long nobody touches the screen before the game shows how to kick. */
+const HINT_AFTER_MS = 6000;
+
 /** How many ghosts follow the bonus target, and how far apart in time. */
 const TRAIL = { count: 3, gapMs: 55 } as const;
 
@@ -68,6 +72,8 @@ export class Play extends Phaser.Scene {
   private aimGfx!: Phaser.GameObjects.Graphics;
   private windGfx!: Phaser.GameObjects.Graphics;
   private windLabel!: Phaser.GameObjects.BitmapText;
+  private hintText!: Phaser.GameObjects.BitmapText;
+  private hintDot!: Phaser.GameObjects.Arc;
   private ball!: Phaser.GameObjects.Image;
   private shadow!: Phaser.GameObjects.Ellipse;
   private restShadow!: Phaser.GameObjects.Ellipse;
@@ -94,6 +100,8 @@ export class Play extends Phaser.Scene {
   /** Where the kick was aimed, and how far the wind carried the ball from it. */
   private landing: Point = { x: 0, y: 0 };
   private drift = 0;
+  /** How long it has been since the player touched the screen, ready for a kick. */
+  private idleMs = 0;
   private flightMs = 0;
   private aiming = false;
   private leftMs = 0;
@@ -118,6 +126,7 @@ export class Play extends Phaser.Scene {
     this.phase = 'ready';
     this.flightMs = 0;
     this.drift = 0;
+    this.idleMs = 0;
     this.aiming = false;
     this.leftMs = 0;
     this.balanceCents = 0;
@@ -168,6 +177,23 @@ export class Play extends Phaser.Scene {
     )
       .setDepth(5)
       .setTint(COLOUR.quiet);
+    this.hintText = addPixelText(this, 0, 0, 'PULL BACK AND LET GO')
+      .setDepth(5)
+      .setTint(COLOUR.gold)
+      .setVisible(false);
+    centerPixelText(this.hintText, GAME_WIDTH / 2, GAME_HEIGHT - 12);
+    // A finger that drags down, over and over: how the ball is kicked.
+    this.hintDot = this.add
+      .circle(GAME_WIDTH / 2, 214, 6, 0xffffff, 0.75)
+      .setDepth(5)
+      .setVisible(false);
+    this.tweens.add({
+      targets: this.hintDot,
+      y: 250,
+      alpha: { from: 0.8, to: 0 },
+      duration: 1100,
+      repeat: -1,
+    });
     this.popText = addPixelText(this, 0, 0, '', FONT_SIZE.medium).setDepth(6).setVisible(false);
     this.bannerText = addPixelText(this, 0, 0, '', FONT_SIZE.large)
       .setDepth(6)
@@ -193,7 +219,11 @@ export class Play extends Phaser.Scene {
       (state) => this.heard(state),
     );
     this.coins.start();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => void this.coins.end());
+    sfx.ambience(true);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      sfx.ambience(false);
+      void this.coins.end();
+    });
   }
 
   override update(_time: number, delta: number): void {
@@ -202,6 +232,7 @@ export class Play extends Phaser.Scene {
     if (this.phase !== 'waiting' && this.phase !== 'ending') this.levelTime += delta;
     this.moveBonus();
     this.drawWind();
+    this.showHint(delta);
 
     if (this.phase === 'ready') {
       this.aim();
@@ -241,6 +272,15 @@ export class Play extends Phaser.Scene {
     const { bonus } = this.data_;
     if (!bonus || !this.bonusLive) return null;
     return bonusSpot(this.levelTime, bonus, this.level, this.geometry, this.bonusNow);
+  }
+
+  /** Shows how to kick if the screen has been left alone a while, and takes it away at a touch. */
+  private showHint(delta: number): void {
+    const waiting = this.phase === 'ready' && !this.controls.held;
+    this.idleMs = waiting ? this.idleMs + delta : 0;
+    const show = this.idleMs > HINT_AFTER_MS;
+    this.hintText.setVisible(show);
+    this.hintDot.setVisible(show);
   }
 
   /** The wind, as a flag on a pole by the pitch and a gauge under the top bar. Both follow the gusts. */
@@ -375,6 +415,7 @@ export class Play extends Phaser.Scene {
     this.flightMs = 0;
     this.phase = 'flying';
     this.ball.setPosition(KICK.origin.x, KICK.origin.y);
+    sfx.play('kick');
     this.restShadow.setVisible(false);
     this.shadow.setVisible(true);
   }
@@ -427,6 +468,7 @@ export class Play extends Phaser.Scene {
       this.drawGoalAt(this.geometry.scale);
       this.ring(this.spots[shot.index], target.colour);
       this.burst(down.x, down.y, [target.colour, 0xffffff], 10, 34);
+      sfx.play('hit');
       this.pop(`+${points}`, popX, popY, COLOUR.gold);
     } else if (shot.kind === 'bonus' && this.data_.bonus && bonusAtLanding) {
       const { bonus } = this.data_;
@@ -436,11 +478,14 @@ export class Play extends Phaser.Scene {
       this.ring(bonusAtLanding, bonus.colour);
       this.burst(bonusAtLanding.x, bonusAtLanding.y, [bonus.colour, 0xffffff, 0xffa31a], 22, 60);
       this.cameras.main.flash(140, 255, 240, 170);
+      sfx.play('bonus');
       this.pop(`BONUS ${points}`, popX, popY, COLOUR.gold);
     } else if (shot.kind === 'repeat') {
+      sfx.play('click');
       this.pop(MISS_WORDS.repeat, popX, popY, COLOUR.quiet);
     } else if (shot.kind !== 'bonus') {
       this.lives -= 1;
+      sfx.play('miss');
       this.pop(MISS_WORDS[shot.kind], popX, popY, COLOUR.miss);
     }
     this.showHud();
@@ -461,6 +506,7 @@ export class Play extends Phaser.Scene {
       return;
     }
     this.phase = 'waiting';
+    sfx.play('over');
     this.leftMs = KIOSK.continueMs;
     this.ball.setVisible(false);
     this.wash.setVisible(true);
@@ -480,11 +526,13 @@ export class Play extends Phaser.Scene {
     const middle = this.geometry.top + this.geometry.mouthHeight / 2;
     this.burst(GAME_WIDTH / 2, middle, [0x169b62, 0xffffff, 0xff883e], 40, 110);
     if (this.level >= this.data_.levels) {
+      sfx.play('win');
       this.say('FULL TIME', 'ALL THE GOALS CLEARED');
       this.time.delayedCall(PLAY.winMs, () => void this.end(true));
       return;
     }
 
+    sfx.play('clear');
     this.say('GOAL CLEARED', '+1 LIFE');
     this.time.delayedCall(PLAY.clearMs, () => {
       this.say('', '');
@@ -550,6 +598,9 @@ export class Play extends Phaser.Scene {
       this.showContinue(state);
     }
     this.balanceCents = state.balanceCents;
+    // The venue can be silenced at any time.
+    sfx.enabled = state.sound;
+    sfx.refresh();
   }
 
   private async end(won: boolean): Promise<void> {
@@ -567,6 +618,8 @@ export class Play extends Phaser.Scene {
       score: this.score,
       rank: finished?.rank ?? null,
       won,
+      playId: finished?.id ?? null,
+      asksInitials: finished?.asksInitials ?? false,
     } satisfies OverData);
   }
 
