@@ -17,6 +17,7 @@ import {
 import { Controls } from '../controls';
 import type { BonusKind, GameData } from '../gameData';
 import { GlassView } from '../glassView';
+import { TapsView } from '../tapsView';
 import {
   bonusAfter,
   bonusCleared,
@@ -107,6 +108,9 @@ export class Play extends Phaser.Scene {
   private coins!: CoinWatch;
   private views: GlassView[] = [];
   private streamGfx!: Phaser.GameObjects.Graphics;
+  private taps!: TapsView;
+  /** How far each of the three taps is held open this frame, used again each frame. */
+  private readonly tapTargets = [0, 0, 0];
   private scoreText!: Phaser.GameObjects.BitmapText;
   private roundText!: Phaser.GameObjects.BitmapText;
   private livesText!: Phaser.GameObjects.BitmapText;
@@ -167,6 +171,7 @@ export class Play extends Phaser.Scene {
     this.controls.cancel();
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
+    this.taps = new TapsView(this, 1.2, this.data_.drink);
     this.streamGfx = this.add.graphics().setDepth(1.5);
     // Two glasses, for the two-pint bonus; the second is only shown then.
     this.views = [new GlassView(this, 2), new GlassView(this, 2)];
@@ -258,6 +263,7 @@ export class Play extends Phaser.Scene {
       this.slots[0].view.setCentre(SPOUT.x + this.swingOffset());
     }
 
+    this.taps.update(delta, this.pullTargets());
     this.drawStreams();
     for (const slot of this.slots) {
       slot.sincePourMs = slot.pour.flow > 1 ? 0 : slot.sincePourMs + delta;
@@ -414,6 +420,17 @@ export class Play extends Phaser.Scene {
   /** Whether a sliding glass is under the tap, so that what pours goes in it. */
   private catching(): boolean {
     return underTap(this.swingOffset(), CATCH_HALF);
+  }
+
+  /** Which taps are being held open: the left slot works the left tap, the right the right, any the middle. */
+  private pullTargets(): number[] {
+    const targets = this.tapTargets;
+    targets.fill(0);
+    for (const slot of this.slots) {
+      const index = slot.side === 'left' ? 0 : slot.side === 'right' ? 2 : 1;
+      if (slot.started && !slot.released) targets[index] = 1;
+    }
+    return targets;
   }
 
   private beginPour(): void {

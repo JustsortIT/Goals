@@ -76,24 +76,25 @@ kiosk a play is 3 lives.
 
 ## Files
 
-| File                        | What it is                                                                       |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `start.ts`                  | `start(data)`: checks the data, then starts Phaser. PubPixels calls this         |
-| `game.json`                 | the content: name, line, rounds, the drink's colours, the mark's, the difficulty |
-| `gameData.ts`               | reads and checks that content (pure)                                             |
-| `logic.ts`, `logic.test.ts` | the rounds, the pour, judging and scoring (pure)                                 |
-| `controls.ts`               | a finger held down (left and right halves counted apart), or space / arrows      |
-| `glassView.ts`              | one glass on the bar: the stout, the mark and the glass; it slides along         |
-| `session.ts`                | a play as the kiosk sees it: start, coins while it lasts, one score              |
-| `art.ts`                    | the pub, the taps, the bar and the glass, drawn in code once at load             |
-| `audio.ts`                  | sounds made in code: the pour (louder as the tap opens), a ring for a split, ... |
-| `scores.ts`                 | the week's scores as rows to draw                                                |
-| `config.ts`                 | numbers and names                                                                |
-| `main.ts`                   | makes the Phaser game                                                            |
-| `scenes/Boot.ts`            | loads the pixel font, draws the pictures                                         |
-| `scenes/Title.ts`           | waits for a coin, or a tap when free                                             |
-| `scenes/Play.ts`            | the glass, the pour, lives, the count for a coin when they run out               |
-| `scenes/Over.ts`            | the score and rank, three initials if asked, and the week's top five             |
+| File                        | What it is                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| `start.ts`                  | `start(data)`: checks the data, then starts Phaser. PubPixels calls this              |
+| `game.json`                 | the content: name, line, rounds, the drink's colours, the mark's, the difficulty      |
+| `gameData.ts`               | reads and checks that content (pure)                                                  |
+| `logic.ts`, `logic.test.ts` | the rounds, the pour, judging and scoring (pure)                                      |
+| `controls.ts`               | a finger held down (left and right halves counted apart), or space / arrows           |
+| `tapsView.ts`               | the taps' moving parts: the handles pulled and shuddering, foam, a drop on the nozzle |
+| `glassView.ts`              | one glass on the bar: the stout, the mark and the glass; it slides along              |
+| `session.ts`                | a play as the kiosk sees it: start, coins while it lasts, one score                   |
+| `art.ts`                    | the pub, the taps, the bar and the glass, drawn in code once at load                  |
+| `audio.ts`                  | sounds made in code: the pour (louder as the tap opens), a ring for a split, ...      |
+| `scores.ts`                 | the week's scores as rows to draw                                                     |
+| `config.ts`                 | numbers and names                                                                     |
+| `main.ts`                   | makes the Phaser game                                                                 |
+| `scenes/Boot.ts`            | loads the pixel font, draws the pictures                                              |
+| `scenes/Title.ts`           | waits for a coin, or a tap when free                                                  |
+| `scenes/Play.ts`            | the glass, the pour, lives, the count for a coin when they run out                    |
+| `scenes/Over.ts`            | the score and rank, three initials if asked, and the week's top five                  |
 
 ## What a pub would want its own
 
@@ -113,6 +114,20 @@ In `game.json`, checked by `gameData.ts`:
   of each kind (`rapid`: `flowFactor`, `bandFactor`, `timeMs`; `moving`: `flowFactor`,
   `amplitude`, `periodMs`, `timeMs`; `two`: `timeMs`).
 
+## The taps in motion (`tapsView.ts`)
+
+- A handle is pulled towards the player to open its tap and pushed back to shut it, as on a real
+  bar. Seen from the front, tipping it makes it shorter and a little wider (it comes at the
+  viewer): scale y goes to cos of the angle and x to 1 + 0.3 sin of it, about 55 degrees at the
+  most. It opens in about 90 ms and shuts in about 140 ms, and shudders slightly while the stout
+  runs.
+- Which handle: the middle tap pours the single glass; in the two-pint bonus the left tap pours the
+  left glass and the right tap the right one. A tap is open while its finger is down and its pour has
+  not been let go of.
+- Foam: three flecks jump at the nozzle while a tap is open. When one shuts, a drop forms on the
+  nozzle, grows for about 0.65 s, and falls; opening the tap again takes it away.
+- Everything is a fixed set of images and one Graphics object used again each frame.
+
 ## Pictures it needs
 
 None from outside: everything is drawn in code (`art.ts`, `glassView.ts`), aiming at a photograph's
@@ -121,8 +136,8 @@ look rather than pixel art's. A pub's own art would be:
 - **The backdrop, 480 by 270**, kept clean: a brick wall and wood panelling and two mirrored
   back-bar shelf units with bottles (blank labels), drawn a little out of focus (a 0.8 px blur, as if
   the camera were focused on the glass), two copper pendant lamps with a cone of light and a glow,
-  a chrome bar on two brackets with three taps hanging from it (a lacquered blank handle, a faucet
-  and a flared nozzle each; the middle one pours, its nozzle mouth at x 296, y 72), a brass rail at
+  a chrome bar on two brackets with three draught faucets hanging from it (a bonnet nut, collar,
+  barrel, reducer and nozzle in chrome; the middle one pours, its nozzle mouth at x 296, y 72), a brass rail at
   y 196, a smooth polished bar that shines under the lamps, and a plain steel drip tray. No
   lettering, and no clutter: no flecks, grain, rings or mats.- **The glass, in three pictures of 104 by 170** that line up: its back (a faint tint and the far
   half of the rim), the drink (the whole glass full: ruby at the edges, black in the middle, bubbles
@@ -130,6 +145,8 @@ look rather than pixel art's. A pub's own art would be:
   walls with light along them as smooth lines, the lamps' reflections, the lens of the foot, the near
   half of the rim, drops of condensation). The inside is 156 px tall, 60 px wide at the foot and 84
   at the rim. A soft shadow, 140 by 28, goes under it.
+- **The tap handles, 16 by 38 each**, one picture a tap (red, black, green; blank cream badges). They
+  are not in the backdrop: `tapsView.ts` stands them on the faucets and moves them. See below.
 - **The head, the surge and the bubbles** are drawn each frame in `glassView.ts` from the head colour:
   four bands of foam, bubbles in it, its ragged lower edge, a ring of foam on the top, the cloudy
   tan surge under it that clears over about 3 s, and bubbles running down the walls.

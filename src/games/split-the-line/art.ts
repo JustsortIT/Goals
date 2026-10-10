@@ -11,7 +11,7 @@
  */
 import type Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
-import { GLASS, GLASS_HEIGHT, SPOUT, TextureKey } from './config';
+import { GLASS, GLASS_HEIGHT, HANDLE, handleKey, SPOUT, TAPS, TextureKey } from './config';
 import { glassWidthAt } from './logic';
 
 type Ctx = CanvasRenderingContext2D;
@@ -341,32 +341,72 @@ function chromeTube(ctx: Ctx, x: number, y: number, width: number, height: numbe
   ctx.fillRect(x, y, width, height);
 }
 
-/** A tap handle: a lacquered column with a rounded top, a gleam down it and a blank cream badge. */
-function tapHandle(ctx: Ctx, cx: number, colour: Rgb): void {
-  const half = 5;
-  const top = 19;
-  const bottom = 44;
-  const lacquer = ctx.createLinearGradient(cx - half, 0, cx + half, 0);
-  lacquer.addColorStop(0, css(scaleRgb(colour, 0.5)));
-  lacquer.addColorStop(0.24, css(scaleRgb(colour, 1.6)));
+/**
+ * A tap handle, drawn standing up from its pin at the bottom of the picture: a slim stem that
+ * flares into a lacquered grip with a rounded top, a gleam down it, a blank cream badge, and a
+ * chrome ferrule where it meets the faucet. The game tips it towards the player to open the tap.
+ */
+function drawHandle(ctx: Ctx, colour: Rgb): void {
+  const w = HANDLE.width;
+  const h = HANDLE.height;
+  const cx = w / 2;
+
+  const outline = (): void => {
+    ctx.beginPath();
+    ctx.moveTo(cx - 2.5, h);
+    ctx.lineTo(cx - 2.5, h - 12);
+    ctx.bezierCurveTo(cx - 2.5, h - 19, cx - 4.5, h - 19, cx - 4.5, h - 26);
+    ctx.lineTo(cx - 4.5, 6);
+    ctx.quadraticCurveTo(cx - 4.5, 0.5, cx, 0.5);
+    ctx.quadraticCurveTo(cx + 4.5, 0.5, cx + 4.5, 6);
+    ctx.lineTo(cx + 4.5, h - 26);
+    ctx.bezierCurveTo(cx + 4.5, h - 19, cx + 2.5, h - 19, cx + 2.5, h - 12);
+    ctx.lineTo(cx + 2.5, h);
+    ctx.closePath();
+  };
+
+  const lacquer = ctx.createLinearGradient(cx - 4.5, 0, cx + 4.5, 0);
+  lacquer.addColorStop(0, css(scaleRgb(colour, 0.45)));
+  lacquer.addColorStop(0.24, css(scaleRgb(colour, 1.7)));
   lacquer.addColorStop(0.6, css(colour));
-  lacquer.addColorStop(1, css(scaleRgb(colour, 0.42)));
+  lacquer.addColorStop(1, css(scaleRgb(colour, 0.38)));
   ctx.fillStyle = lacquer;
-  ctx.beginPath();
-  ctx.moveTo(cx - half, bottom);
-  ctx.lineTo(cx - half, top + 5);
-  ctx.quadraticCurveTo(cx - half, top, cx, top);
-  ctx.quadraticCurveTo(cx + half, top, cx + half, top + 5);
-  ctx.lineTo(cx + half, bottom);
-  ctx.closePath();
+  outline();
   ctx.fill();
-  rect(ctx, 'rgba(255,255,255,0.5)', cx - half + 2, top + 5, 1, 12);
-  // The badge, blank.
-  rect(ctx, '#f0e8d4', cx - 3, top + 11, 6, 8);
-  rect(ctx, 'rgba(0,0,0,0.25)', cx - 3, top + 18, 6, 1);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  outline();
+  ctx.stroke();
+
+  // The gleam down the grip, and the shine on its rounded top.
+  rect(ctx, 'rgba(255,255,255,0.5)', cx - 2, 5, 1, h - 26);
+  rect(ctx, 'rgba(255,255,255,0.32)', cx - 2, 2, 3, 1);
+  // The badge: cream, blank, with a shadow under it.
+  rect(ctx, '#f0e8d4', cx - 3, 9, 6, 9);
+  rect(ctx, 'rgba(255,255,255,0.6)', cx - 3, 9, 6, 1);
+  rect(ctx, 'rgba(0,0,0,0.3)', cx - 3, 17, 6, 1);
+  // The ferrule at the foot.
+  chromeTube(ctx, cx - 3, h - 5, 6, 5);
+  rect(ctx, 'rgba(0,0,0,0.4)', cx - 3, h - 5, 6, 1);
 }
 
-/** The taps: a chrome bar on two brackets, and under it, for each, a handle, a faucet and a nozzle. */
+/** A draught faucet under the bar: its bonnet nut, collar, barrel, reducer and nozzle, all chrome. */
+function drawFaucet(ctx: Ctx, x: number): void {
+  // The bonnet nut, with a dark line under it, and the collar.
+  chromeTube(ctx, x - 8, 55, 16, 3);
+  rect(ctx, 'rgba(0,0,0,0.4)', x - 8, 58, 16, 1);
+  chromeTube(ctx, x - 5, 59, 11, 2);
+  // The barrel, with a seam round it and a shadow under it.
+  chromeTube(ctx, x - 7, 61, 14, 6);
+  rect(ctx, 'rgba(0,0,0,0.3)', x - 7, 64, 14, 1);
+  rect(ctx, 'rgba(0,0,0,0.4)', x - 7, 67, 14, 1);
+  // The reducer and the nozzle, with the dark of its mouth.
+  chromeTube(ctx, x - 4, 68, 9, 2);
+  chromeTube(ctx, x - 5, 70, 11, 2);
+  rect(ctx, '#0b0d10', x - 3, 71, 7, 1);
+}
+
+/** The taps' fixed parts: a chrome bar on two brackets, and under it a faucet for each tap. */
 function drawTaps(ctx: Ctx): void {
   // The brackets up into the ceiling, and the bar between them.
   chromeTube(ctx, 222, 0, 5, 46);
@@ -379,25 +419,8 @@ function drawTaps(ctx: Ctx): void {
   ctx.fillStyle = beam;
   ctx.fillRect(214, 44, 164, 10);
   rect(ctx, 'rgba(0,0,0,0.3)', 214, 54, 164, 1);
-
-  const handles: [number, Rgb][] = [
-    [SPOUT.x - 50, rgb('#b42a31')],
-    [SPOUT.x, rgb('#1d2025')],
-    [SPOUT.x + 50, rgb('#1f6a3c')],
-  ];
-  for (const [x, colour] of handles) {
-    tapHandle(ctx, x, colour);
-    // The ferrule where the handle goes into the bar.
-    chromeTube(ctx, x - 6, 41, 12, 4);
-    // The faucet under the bar, its neck, and the flared nozzle with its dark mouth.
-    chromeTube(ctx, x - 8, 55, 16, 7);
-    rect(ctx, 'rgba(0,0,0,0.3)', x - 8, 62, 16, 1);
-    chromeTube(ctx, x - 3, 62, 6, SPOUT.y - 66);
-    chromeTube(ctx, x - 4, SPOUT.y - 4, 9, 4);
-    rect(ctx, '#0b0d10', x - 2, SPOUT.y - 1, 5, 1);
-  }
+  for (const tap of TAPS) drawFaucet(ctx, SPOUT.x + tap.dx);
 }
-
 function drawDripTray(ctx: Ctx): void {
   const tray = { x: GLASS.x - 98, y: GLASS.bottom + 2, w: 196, h: 14 };
   // A steel frame round a black grate with plain slots.
@@ -686,6 +709,11 @@ function drawVignette(ctx: Ctx): void {
 export function createTextures(scene: Phaser.Scene, drink: { liquid: number }): void {
   const glassHeight = GLASS_ART.above + GLASS_HEIGHT + GLASS_ART.below;
   createTexture(scene, TextureKey.Backdrop, GAME_WIDTH, GAME_HEIGHT, drawBackdrop);
+  TAPS.forEach((tap, index) =>
+    createTexture(scene, handleKey(index), HANDLE.width, HANDLE.height, (ctx) =>
+      drawHandle(ctx, fromNumber(tap.colour)),
+    ),
+  );
   createTexture(scene, TextureKey.GlassBack, GLASS_ART.width, glassHeight, drawGlassBack);
   createTexture(scene, TextureKey.Stout, GLASS_ART.width, glassHeight, (ctx) =>
     drawStout(ctx, drink.liquid),

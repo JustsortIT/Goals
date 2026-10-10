@@ -45,6 +45,19 @@ export const CATCH_HALF = 34;
 /** Where the tap's spout is, over the glass. */
 export const SPOUT = { x: GLASS.x, y: 72 } as const;
 
+/** The three taps: how far each is from the middle one, and its handle's colour (the middle one pours). */
+export const TAPS = [
+  { dx: -50, colour: 0xb42a31 },
+  { dx: 0, colour: 0x1d2025 },
+  { dx: 50, colour: 0x1f6a3c },
+] as const;
+
+/** A tap handle's picture, and the height of the pin it pivots on (the top of the faucet). */
+export const HANDLE = { width: 16, height: 38, pivotY: 58 } as const;
+
+/** The handle's picture for tap `index`. */
+export const handleKey = (index: number): string => `tap-handle-${index}`;
+
 /** The tap: how quickly it opens and shuts (the time it takes to get most of the way). */
 export const POUR = { openMs: 110, closeMs: 150 } as const;
 

@@ -7,6 +7,7 @@ import { GLASS_ART } from '../art';
 import { sfx } from '../audio';
 import { COLOUR, DATA_KEY, GLASS, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
+import { TapsView } from '../tapsView';
 import { beginPlay, onKiosk } from '../session';
 import type { PlayData } from './Play';
 
@@ -31,6 +32,7 @@ export class Title extends Phaser.Scene {
     this.starting = false;
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
+    new TapsView(this, 1.2, data.drink).update(0, [0, 0, 0]);
     // An empty glass on the bar, waiting.
     const glassX = GLASS.x - GLASS_ART.width / 2;
     const glassY = GLASS.top - GLASS_ART.above;
