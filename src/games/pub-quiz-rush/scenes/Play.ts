@@ -5,7 +5,16 @@ import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { sfx } from '../audio';
 import { BUTTON_COLOURS, COLOUR, DATA_KEY, LAYOUT, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
-import { answerPoints, ask, questionOrder, streakGivesLife, timeFor, type Asked } from '../logic';
+import {
+  answerPoints,
+  ask,
+  fiftyFifty,
+  fiftyFiftyPoints,
+  questionOrder,
+  streakGivesLife,
+  timeFor,
+  type Asked,
+} from '../logic';
 import { CoinWatch, endPlay, onKiosk } from '../session';
 import type { OverData } from './Over';
 
@@ -50,6 +59,12 @@ export class Play extends Phaser.Scene {
   private wash!: Phaser.GameObjects.Rectangle;
   private countText!: Phaser.GameObjects.BitmapText;
   private continueText!: Phaser.GameObjects.BitmapText;
+  private lifeline!: Phaser.GameObjects.Rectangle;
+  private lifelineText!: Phaser.GameObjects.BitmapText;
+
+  /** The 50/50 is one a play. gone are the buttons it took away from the question being asked. */
+  private fiftyUsed = false;
+  private gone: number[] = [];
 
   private phase: Phase = 'thinking';
   private score = 0;
@@ -80,6 +95,8 @@ export class Play extends Phaser.Scene {
     this.limitMs = 0;
     this.leftMs = 0;
     this.balanceCents = 0;
+    this.fiftyUsed = false;
+    this.gone = [];
     this.buttons = [];
     // Every play is a different set of questions in a different order.
     this.seed = Math.floor(Math.random() * 0x7fffffff);
@@ -110,9 +127,7 @@ export class Play extends Phaser.Scene {
       .setMaxWidth(LAYOUT.questionWidth)
       .setCenterAlign();
     this.timerBar = this.add.graphics().setDepth(2);
-    this.streakText = addPixelText(this, LAYOUT.bar.x, LAYOUT.bar.y + 7, '')
-      .setDepth(2)
-      .setTint(COLOUR.gold);
+    this.streakText = addPixelText(this, 100, 4, '').setDepth(8).setTint(COLOUR.gold);
 
     // The four buttons, each a colour of its own, with a light edge so they look pressed in.
     const { button } = LAYOUT;
@@ -142,7 +157,17 @@ export class Play extends Phaser.Scene {
       face.on(Phaser.Input.Events.POINTER_DOWN, () => this.choose(index));
       this.buttons.push({ face, shine, label });
     }
+    const { lifeline } = LAYOUT;
+    this.lifeline = this.add
+      .rectangle(lifeline.x, lifeline.y, lifeline.width, lifeline.height, 0x3b2a1a)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, COLOUR.gold, 0.7)
+      .setDepth(3)
+      .setInteractive();
+    this.lifelineText = addPixelText(this, 0, 0, '', FONT_SIZE.medium).setDepth(5);
+    this.lifeline.on(Phaser.Input.Events.POINTER_DOWN, () => this.useFifty());
     this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+      if (event.key === '5') this.useFifty();
       const index = Number(event.key) - 1;
       if (index >= 0 && index < 4) this.choose(index);
     });
@@ -192,6 +217,7 @@ export class Play extends Phaser.Scene {
     // A short breath before the clock runs, so the first words can be read.
     this.clockMs = -PLAY.startMs;
     this.phase = 'thinking';
+    this.gone = [];
 
     const { board } = LAYOUT;
     this.question.setText(this.asked.text);
@@ -202,15 +228,46 @@ export class Play extends Phaser.Scene {
       centerPixelText(button.label, x + LAYOUT.button.width / 2, y + LAYOUT.button.height / 2);
       button.face.setFillStyle(BUTTON_COLOURS[index]).setAlpha(1);
       button.label.setAlpha(1);
+      button.shine.setAlpha(1);
       button.face.setInteractive();
     });
+    this.showLifeline();
     this.showHud();
     this.drawTimer();
   }
 
+  /** Takes two wrong answers away, once a play. What the question then scores is halved. */
+  private useFifty(): void {
+    if (this.phase !== 'thinking' || this.fiftyUsed) return;
+    this.fiftyUsed = true;
+    this.gone = fiftyFifty(this.asked.correct, this.seed + this.number * 17);
+    for (const index of this.gone) {
+      this.buttons[index].face.setAlpha(0.2).disableInteractive();
+      this.buttons[index].label.setAlpha(0);
+      this.buttons[index].shine.setAlpha(0);
+    }
+    sfx.play('close');
+    this.showLifeline();
+  }
+
+  private showLifeline(): void {
+    const usable = !this.fiftyUsed;
+    this.lifeline.setAlpha(usable ? 1 : 0.4);
+    if (usable) this.lifeline.setInteractive();
+    else this.lifeline.disableInteractive();
+    this.lifelineText.setText(usable ? '50/50' : '50/50 USED');
+    this.lifelineText.setTint(usable ? COLOUR.gold : COLOUR.quiet);
+    const { lifeline } = LAYOUT;
+    centerPixelText(
+      this.lifelineText,
+      lifeline.x + lifeline.width / 2,
+      lifeline.y + lifeline.height / 2,
+    );
+  }
+
   /** A tap on a button: right or wrong. */
   private choose(index: number): void {
-    if (this.phase !== 'thinking' || this.clockMs < 0) return;
+    if (this.phase !== 'thinking' || this.clockMs < 0 || this.gone.includes(index)) return;
     const right = index === this.asked.correct;
     if (right) {
       const result = answerPoints(
@@ -220,11 +277,12 @@ export class Play extends Phaser.Scene {
         this.data_.points,
       );
       this.streak = result.streak;
-      this.score += result.points;
+      const points = this.gone.length > 0 ? fiftyFiftyPoints(result.points) : result.points;
+      this.score += points;
       const life = streakGivesLife(this.streak, this.data_.streakLife);
       if (life) this.lives += 1;
       sfx.play(this.streak >= 3 ? 'split' : 'close');
-      this.pop(life ? `+${result.points}  +1 LIFE` : `+${result.points}`, COLOUR.gold);
+      this.pop(life ? `+${points}  +1 LIFE` : `+${points}`, COLOUR.gold);
       this.reveal(index);
     } else {
       this.fail(index, 'WRONG');
@@ -254,7 +312,7 @@ export class Play extends Phaser.Scene {
         button.face.setFillStyle(COLOUR.good);
       } else if (index === chosen) {
         button.face.setFillStyle(COLOUR.bad).setAlpha(0.9);
-      } else {
+      } else if (!this.gone.includes(index)) {
         button.face.setAlpha(0.35);
         button.label.setAlpha(0.35);
       }
@@ -387,7 +445,7 @@ export class Play extends Phaser.Scene {
     this.tweens.killTweensOf(this.popText);
     this.popText.setText(words).setTint(tint).setAlpha(1).setVisible(true);
     const { board } = LAYOUT;
-    centerPixelText(this.popText, board.x + board.width / 2, board.y + board.height - 14);
+    centerPixelText(this.popText, board.x + board.width / 2, LAYOUT.button.ys[1] - 2);
     this.tweens.add({
       targets: this.popText,
       y: this.popText.y - 10,

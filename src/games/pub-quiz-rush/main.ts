@@ -11,6 +11,16 @@ import { Over } from './scenes/Over';
 import { Play } from './scenes/Play';
 import { Title } from './scenes/Title';
 
+/**
+ * How much to enlarge the 480 by 270 screen. A whole number keeps every font pixel the same size, which
+ * is what makes the text look clean; where that would leave wide empty borders, fit the window instead.
+ */
+function crispZoom(): number {
+  const fit = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
+  const whole = Math.max(1, Math.floor(fit));
+  return fit / whole <= 1.34 ? whole : fit;
+}
+
 export function run(data: GameData): void {
   const game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -18,10 +28,11 @@ export function run(data: GameData): void {
     backgroundColor: COLOUR.background,
     pixelArt: true,
     scale: {
-      mode: Phaser.Scale.FIT,
+      mode: Phaser.Scale.NONE,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       width: GAME_WIDTH,
       height: GAME_HEIGHT,
+      zoom: crispZoom(),
     },
     // This game has no sound. Take this out when it gets some.
     audio: { noAudio: true },
@@ -30,6 +41,7 @@ export function run(data: GameData): void {
     scene: [Boot, Title, Play, Over],
   });
   game.registry.set(DATA_KEY, data);
+  window.addEventListener('resize', () => game.scale.setZoom(crispZoom()));
 
   if (import.meta.env.DEV) {
     // Handy for poking at the running game from the browser console.

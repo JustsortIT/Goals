@@ -9,15 +9,17 @@ A pub quiz against the clock. A question is chalked on the board and four colour
 the answers. Tap the right one before the bar runs out. A quicker answer scores more, and right
 answers in a row raise a multiplier (up to x2). A wrong answer, or no answer in time, shows the
 right button in green and costs a life. Fifteen questions are asked, easy first and harder later,
-and the clock shortens each time (10 s down to 5 s). Get through all fifteen to win ("last orders").
+and the clock shortens each time (12 s down to 6.5 s). Get through all fifteen to win ("last orders").
 A streak of 5 right answers gives one life back.
+
+A **50/50** strip under the buttons, once a play, takes two wrong answers away (iftyFifty in logic.ts). The question it is used on scores half (iftyFiftyPoints); the streak still goes on. (Key 5 while making it.)
 
 Every play uses a fresh random seed, so the questions picked and the place of the right answer
 differ each time. The right answer is stored first in `game.json` and shuffled at play time.
 
 ## How it is played with fingers
 
-One tap on a button. One finger; nothing is dragged. (While making it: clicks with the mouse.)
+One tap on a button or on the 50/50 strip. One finger; nothing is dragged. (While making it: clicks with the mouse.)
 
 ## What a life is
 
@@ -44,11 +46,16 @@ count carries on with the next question.
 - The questions: plain ASCII, question up to 90 characters, answers up to 26, exactly four
   distinct answers, `level` 1 to 3, at least `rounds` of them, none repeated. No brands and no
   real people. The checks are in `gameData.ts`.
+- There are 128 questions now, so plays rarely repeat. More are welcome.
 - How many rounds, the clock (`startMs`, `stepMs`, `endMs`) and the points.
 
 ## Pictures it needs
 
 None: the wall, board and buttons are drawn in `art.ts`.
+
+## How it is scaled
+
+main.ts zooms the 480 by 270 screen by a whole number (crispZoom) so every font pixel is the same size on screen, which is what keeps the text clean. If a whole number would leave wide empty borders (more than a third), it fits the window instead. On a 1920 by 1080 kiosk it is exactly 4x.
 
 ## Asks of the shell
 

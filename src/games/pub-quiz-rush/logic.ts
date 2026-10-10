@@ -79,6 +79,16 @@ export function ask(question: Question, seed: number): Asked {
   };
 }
 
+/** The two wrong answers a 50/50 takes away: which of the four buttons, picked by the seed. */
+export function fiftyFifty(correct: number, seed: number): number[] {
+  const wrong = [0, 1, 2, 3].filter((index) => index !== correct);
+  const order = shuffled(wrong.length, seeded(seed));
+  return [wrong[order[0]], wrong[order[1]]].sort();
+}
+
+/** What a right answer is worth after a 50/50 was used on its question. */
+export const fiftyFiftyPoints = (points: number): number => Math.round(points / 2);
+
 /** How long the question that comes `number`th (from 1) lasts: shorter each time, down to the least. */
 export function timeFor(number: number, time: GameData['time']): number {
   return Math.max(time.endMs, time.startMs - time.stepMs * (number - 1));

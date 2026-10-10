@@ -24,7 +24,9 @@ export const BUTTON_COLOURS = [0xb42a31, 0x1f4f93, 0x1f6a3c, 0xb8892a] as const;
 export const LAYOUT = {
   board: { x: 20, y: 22, width: 440, height: 74 },
   bar: { x: 20, y: 99, width: 440, height: 5 },
-  button: { width: 214, height: 72, xs: [20, 246], ys: [114, 192] },
+  button: { width: 214, height: 64, xs: [20, 246], ys: [109, 177] },
+  /** The 50/50 strip under the buttons. */
+  lifeline: { x: 20, y: 247, width: 440, height: 20 },
   /** The most the question may wrap to, and how wide a line of it is. */
   questionWidth: 420,
   answerWidth: 192,

@@ -5,6 +5,8 @@ import {
   answerPoints,
   ask,
   bestScore,
+  fiftyFifty,
+  fiftyFiftyPoints,
   questionOrder,
   readingMs,
   seeded,
@@ -43,7 +45,9 @@ describe("the game's data", () => {
     expect(() => readGameData(null)).toThrow('no data');
     expect(wrong({ questions: [] })).toThrow('no questions');
     expect(wrong({ rounds: 1 })).toThrow('3 to 40 rounds');
-    expect(wrong({ rounds: 40 })).toThrow('fewer questions');
+    expect(wrong({ rounds: 40, questions: data.questions.slice(0, 30) })).toThrow(
+      'fewer questions',
+    );
     expect(wrong({ name: 'CAF\u00c9 QUIZ' })).toThrow('plain keyboard characters');
     expect(wrong({ line: '' })).toThrow('line');
     expect(
@@ -194,5 +198,29 @@ describe('the clock and the score', () => {
     expect(lives).toBeGreaterThan(0);
     expect(score).toBeGreaterThan(0);
     expect(score).toBeLessThan(best);
+  });
+});
+
+describe('the 50/50', () => {
+  it('takes away two wrong answers and never the right one', () => {
+    for (let seed = 0; seed < 200; seed += 1) {
+      for (const correct of [0, 1, 2, 3]) {
+        const gone = fiftyFifty(correct, seed);
+        expect(gone).toHaveLength(2);
+        expect(new Set(gone).size).toBe(2);
+        expect(gone).not.toContain(correct);
+      }
+    }
+  });
+
+  it('is the same for the same seed, and leaves a different one for others', () => {
+    expect(fiftyFifty(1, 7)).toEqual(fiftyFifty(1, 7));
+    const kept = new Set(Array.from({ length: 60 }, (_, seed) => fiftyFifty(0, seed).join()));
+    expect(kept.size).toBeGreaterThan(1);
+  });
+
+  it('halves what the answer is worth', () => {
+    expect(fiftyFiftyPoints(200)).toBe(100);
+    expect(fiftyFiftyPoints(125)).toBe(63);
   });
 });
