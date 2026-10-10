@@ -1,0 +1,7 @@
+{
+  "title": "Pint Dash",
+  "by": "Mark",
+  "status": "carried over",
+  "summary": "The first prototype: a platformer along a Dublin street. PubPixels' platformer grew out of it. Kept as a worked example; it does not use the shell.",
+  "shell": false
+}

@@ -1,0 +1,78 @@
+/* The list of games. Plain on purpose: the games are what is looked at. */
+body {
+  margin: 0;
+  background: #0b0b12;
+  color: #e8e6df;
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.lead {
+  margin: 0.25rem 0 2rem;
+  color: #a9a7b8;
+}
+
+article {
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2f2f4a;
+  border-radius: 8px;
+  background: #15151f;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+article p {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.status {
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 99px;
+  background: #2f2f4a;
+  color: #ffd76a;
+  font-size: 0.75rem;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+a {
+  color: #ffd76a;
+}
+
+a.button {
+  padding: 0.4rem 0.9rem;
+  border-radius: 99px;
+  background: #ffd76a;
+  color: #0b0b12;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+code {
+  color: #8b89a0;
+  font-size: 0.8rem;
+}

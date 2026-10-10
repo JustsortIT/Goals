@@ -1,0 +1,34 @@
+{
+  "name": "phaseplay",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "art:generate": "node --env-file=.env.local src/games/pint-dash/tools/art/generate.mjs",
+    "new-game": "node tools/new-game.mjs",
+    "shell:sync": "sh tools/sync-shell.sh"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.12.0",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.71.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.3"
+  }
+}

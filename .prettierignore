@@ -1,0 +1,11 @@
+dist
+package-lock.json
+
+# Vendored from node_modules/phaser/skills; keep byte-identical to upstream.
+.claude/skills
+
+# Written by `npm run art:generate`.
+src/games/pint-dash/themes/packs
+
+# A copy of PubPixels' shell, kept byte-identical: see src/shell/COPIED_FROM.
+src/shell

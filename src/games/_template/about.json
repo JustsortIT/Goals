@@ -1,0 +1,6 @@
+{
+  "title": "Template: Catch",
+  "by": "phaseplay",
+  "status": "template",
+  "summary": "What a new game starts as: a tiny game that already takes coins, counts lives and sends a score the way PubPixels does. Copy it with npm run new-game."
+}

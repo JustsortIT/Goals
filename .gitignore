@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+coverage
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Local overrides and secrets
+*.local
+.env
+.env.*
+!.env.example
+
+# Claude Code: commit shared skills/settings, not personal ones
+.claude/settings.local.json
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.sw?

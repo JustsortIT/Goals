@@ -1,0 +1,38 @@
+{
+  "setting": "english city street in daylight",
+  "style": "clean chunky pixel art, limited palette",
+  "sprites": {
+    "hero": "full body man in a red t-shirt and blue jeans, short brown hair, standing, facing right",
+    "enemy": "wooden beer keg standing upright, metal bands",
+    "pickup": "pint of amber beer with white foam head, glass mug with handle",
+    "heart": "red heart icon",
+    "crate": "wooden shipping crate, flat front view, perfectly square, cross brace, fills the whole image edge to edge"
+  },
+  "goal": "small english pub building facade, brick walls, green sign board above a central wooden door, two lit windows",
+  "decor": {
+    "lampPost": "victorian street lamp post, black iron, lit lantern on top",
+    "arrowSign": "wooden signpost with an arrow pointing right",
+    "fence": "low wooden picket fence section",
+    "weeds": "small green weeds growing from the ground"
+  },
+  "animations": {
+    "run": {
+      "action": "running on the spot, fast run cycle, legs and arms pumping, staying in the centre of the frame",
+      "frames": 8,
+      "use": [2, 3, 4, 6, 7, 8]
+    },
+    "jump": {
+      "action": "jumping straight up, knees bent, arms raised",
+      "frames": 4,
+      "use": [2, 3, 4]
+    }
+  },
+  "tilesets": {
+    "ground": {
+      "lower": "plain brown soil, smooth flat colour, almost no detail",
+      "transition": "grey stone paving slabs"
+    },
+    "platform": { "lower": "wooden scaffold planks", "transition": "" },
+    "wall": { "lower": "sand coloured brick wall", "transition": "" }
+  }
+}

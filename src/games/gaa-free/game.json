@@ -1,0 +1,67 @@
+{
+  "name": "FREE TAKER",
+  "line": "PULL BACK AND LET GO",
+  "levels": 6,
+  "shrink": 0.07,
+  "targets": [
+    {
+      "name": "centre",
+      "points": 10,
+      "colour": "#ffd76a",
+      "radius": 17,
+      "x": 0.5,
+      "y": 0.55
+    },
+    {
+      "name": "left",
+      "points": 20,
+      "colour": "#9be7ff",
+      "radius": 14,
+      "x": 0.18,
+      "y": 0.5
+    },
+    {
+      "name": "right",
+      "points": 30,
+      "colour": "#ff9a9a",
+      "radius": 11,
+      "x": 0.82,
+      "y": 0.45
+    },
+    {
+      "name": "high left",
+      "points": 40,
+      "colour": "#b9f6ca",
+      "radius": 9,
+      "x": 0.34,
+      "y": 0.25
+    },
+    {
+      "name": "top corner",
+      "points": 50,
+      "colour": "#ff9e40",
+      "radius": 7,
+      "x": 0.93,
+      "y": 0.2
+    }
+  ],
+  "bonus": {
+    "name": "golden",
+    "points": 100,
+    "colour": "#ffd76a",
+    "radius": 9,
+    "x": 0.5,
+    "y": 0.5,
+    "spanX": 0.36,
+    "spanY": 0.16,
+    "periodMs": 4600,
+    "speedUp": 0.1
+  },
+  "wind": {
+    "fromLevel": 2,
+    "strength": 6,
+    "perLevel": 3,
+    "gustMs": 5200,
+    "steadiness": 0.25
+  }
+}

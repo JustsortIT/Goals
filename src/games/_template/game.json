@@ -1,0 +1,9 @@
+{
+  "name": "CATCH",
+  "line": "CATCH WHAT FALLS",
+  "drops": [
+    { "name": "pint", "points": 10, "colour": "#ffd76a", "fall": 70, "weight": 6 },
+    { "name": "treat", "points": 30, "colour": "#9be7ff", "fall": 100, "weight": 3 },
+    { "name": "prize", "points": 100, "colour": "#ff9a9a", "fall": 140, "weight": 1 }
+  ]
+}

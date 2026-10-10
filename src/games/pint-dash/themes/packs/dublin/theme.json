@@ -1,0 +1,284 @@
+{
+  "name": "dublin",
+  "tileSize": 16,
+  "images": {
+    "enemy": {
+      "file": "enemy.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "wooden beer keg standing upright, metal bands, city street in daylight, clean chunky pixel art, limited palette",
+      "usage": "reused from street-daylight"
+    },
+    "heart": {
+      "file": "heart.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "red heart icon, city street in daylight, clean chunky pixel art, limited palette",
+      "usage": "reused from street-daylight"
+    },
+    "crate": {
+      "file": "crate.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "wooden shipping crate, flat front view, perfectly square, cross brace, fills the whole image edge to edge, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "reused from street-daylight"
+    },
+    "fence": {
+      "file": "fence.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "low wooden picket fence section, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "reused from street-daylight"
+    },
+    "weeds": {
+      "file": "weeds.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "small green weeds growing from the ground, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "reused from street-daylight"
+    },
+    "lampPost": {
+      "file": "lampPost.png",
+      "width": 32,
+      "height": 32,
+      "prompt": "victorian street lamp post, black iron, lit lantern on top, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "reused from street-daylight"
+    },
+    "hero": {
+      "file": "hero.png",
+      "width": 24,
+      "height": 24,
+      "prompt": "full body man wearing a tweed flat cap, dark green jumper and blue jeans, standing, facing right, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "1 generation(s)"
+    },
+    "pickup": {
+      "file": "pickup.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "pint glass of black stout beer with a thick cream coloured head, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "1 generation(s)"
+    },
+    "arrowSign": {
+      "file": "arrowSign.png",
+      "width": 32,
+      "height": 32,
+      "prompt": "green road sign with a white arrow pointing right, on a grey pole, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "1 generation(s)"
+    },
+    "streetSign": {
+      "file": "streetSign.png",
+      "width": 32,
+      "height": 32,
+      "prompt": "green cast iron pillar post box, Irish post box, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "1 generation(s)"
+    },
+    "warningSign": {
+      "file": "warningSign.png",
+      "width": 32,
+      "height": 32,
+      "prompt": "yellow diamond shaped road warning sign on a grey pole, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "1 generation(s)"
+    },
+    "goal": {
+      "file": "goal.png",
+      "width": 112,
+      "height": 64,
+      "prompt": "traditional Irish pub front, bright red painted wooden shopfront, gold lettering on a black sign board, hanging flower baskets, central door, two lit windows, flat front elevation seen straight on, no perspective, no ground, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.01038369427786933"
+    },
+    "barrel": {
+      "file": "barrel.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "silver steel beer keg standing upright, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.0072001415623558895"
+    },
+    "roadBarrier": {
+      "file": "roadBarrier.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "red and white striped road works barrier, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.00747398230764601"
+    },
+    "backdrop-near": {
+      "file": "backdrop-near.png",
+      "width": 256,
+      "height": 64,
+      "prompt": "row of Georgian terraced town houses, flat roofs with rows of chimney pots, flat silhouette seen from the side, buildings standing in a row along the bottom edge, plain white background, nothing else",
+      "usage": "$0.008733825233247545"
+    },
+    "backdrop-far-2": {
+      "file": "backdrop-far-2.png",
+      "width": 256,
+      "height": 96,
+      "prompt": "distant Dublin city skyline: one very tall thin needle spire, two tall thin power station chimneys side by side, a domed building, church steeples, low rooftops, flat silhouette seen from the side, buildings standing in a row along the bottom edge, plain white background, nothing else",
+      "usage": "$0.01074863788816664"
+    },
+    "backdrop-far-1": {
+      "file": "backdrop-far-1.png",
+      "width": 256,
+      "height": 96,
+      "prompt": "distant Dublin city skyline: low rooftops with chimneys, church steeples, a clock tower, trees, flat silhouette seen from the side, buildings standing in a row along the bottom edge, plain white background, nothing else",
+      "usage": "$0.009409655200110542"
+    },
+    "noticeBoard": {
+      "file": "noticeBoard.png",
+      "width": 48,
+      "height": 48,
+      "prompt": "pub chalkboard sign on two short wooden legs, wide wooden frame, completely blank plain black slate, no writing, no drawing, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.00753749065928989"
+    },
+    "banner": {
+      "file": "banner.png",
+      "width": 128,
+      "height": 32,
+      "prompt": "wide rectangular enamel street name plate, plain dark green with a thin white border, completely blank, no writing, flat front view, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.009372412125269573"
+    },
+    "flyer": {
+      "file": "flyer.png",
+      "width": 16,
+      "height": 16,
+      "prompt": "white seagull flying, wings spread wide, side view, facing right, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.008159772978888619"
+    },
+    "landmark": {
+      "file": "landmark.png",
+      "width": 64,
+      "height": 64,
+      "prompt": "bronze statue of a woman street trader pushing a wheelbarrow cart, on a low grey stone plinth, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.009653848224216038"
+    },
+    "building": {
+      "file": "building.png",
+      "width": 64,
+      "height": 64,
+      "prompt": "Georgian town house front, red brick, bright yellow front door with a white semicircular fanlight above it, two sash windows, black iron railings, flat front elevation seen straight on, clean chunky pixel art, limited palette, single object centered on a plain white background, nothing else",
+      "usage": "$0.008856481790542603"
+    }
+  },
+  "tilesets": {
+    "ground": {
+      "prompt": "medium grey granite stone, smooth flat colour, almost no detail, Dublin city street, Ireland, overcast daylight, clean chunky pixel art, limited palette",
+      "transition": "light grey cobblestones",
+      "tiles": {
+        "0": "ground-00.png",
+        "1": "ground-01.png",
+        "2": "ground-02.png",
+        "3": "ground-03.png",
+        "4": "ground-04.png",
+        "5": "ground-05.png",
+        "6": "ground-06.png",
+        "7": "ground-07.png",
+        "8": "ground-08.png",
+        "9": "ground-09.png",
+        "10": "ground-10.png",
+        "11": "ground-11.png",
+        "12": "ground-12.png",
+        "13": "ground-13.png",
+        "14": "ground-14.png",
+        "15": "ground-15.png"
+      }
+    },
+    "platform": {
+      "prompt": "dark green painted iron beam with rivets, Dublin city street, Ireland, overcast daylight, clean chunky pixel art, limited palette",
+      "transition": "",
+      "tiles": {
+        "0": "platform-00.png",
+        "1": "platform-01.png",
+        "2": "platform-02.png",
+        "3": "platform-03.png",
+        "4": "platform-04.png",
+        "5": "platform-05.png",
+        "6": "platform-06.png",
+        "7": "platform-07.png",
+        "8": "platform-08.png",
+        "9": "platform-09.png",
+        "10": "platform-10.png",
+        "11": "platform-11.png",
+        "12": "platform-12.png",
+        "13": "platform-13.png",
+        "14": "platform-14.png",
+        "15": "platform-15.png"
+      }
+    },
+    "wall": {
+      "prompt": "red brick wall, Dublin city street, Ireland, overcast daylight, clean chunky pixel art, limited palette",
+      "transition": "",
+      "tiles": {
+        "0": "wall-00.png",
+        "1": "wall-01.png",
+        "2": "wall-02.png",
+        "3": "wall-03.png",
+        "4": "wall-04.png",
+        "5": "wall-05.png",
+        "6": "wall-06.png",
+        "7": "wall-07.png",
+        "8": "wall-08.png",
+        "9": "wall-09.png",
+        "10": "wall-10.png",
+        "11": "wall-11.png",
+        "12": "wall-12.png",
+        "13": "wall-13.png",
+        "14": "wall-14.png",
+        "15": "wall-15.png"
+      }
+    }
+  },
+  "animations": {
+    "run": {
+      "action": "running on the spot, fast run cycle, legs and arms pumping, staying in the centre of the frame",
+      "width": 32,
+      "height": 32,
+      "heroX": 4,
+      "heroY": 8,
+      "files": [
+        "hero-run-00.png",
+        "hero-run-01.png",
+        "hero-run-02.png",
+        "hero-run-03.png",
+        "hero-run-04.png",
+        "hero-run-05.png",
+        "hero-run-06.png",
+        "hero-run-07.png",
+        "hero-run-08.png"
+      ],
+      "usage": "$0.02332829668124517",
+      "frames": [
+        "hero-run-02.png",
+        "hero-run-03.png",
+        "hero-run-04.png",
+        "hero-run-06.png",
+        "hero-run-07.png",
+        "hero-run-08.png"
+      ]
+    },
+    "jump": {
+      "action": "jumping straight up, knees bent, arms raised",
+      "width": 32,
+      "height": 32,
+      "heroX": 4,
+      "heroY": 8,
+      "files": [
+        "hero-jump-00.png",
+        "hero-jump-01.png",
+        "hero-jump-02.png",
+        "hero-jump-03.png",
+        "hero-jump-04.png"
+      ],
+      "usage": "$0.03197144074572457",
+      "frames": [
+        "hero-jump-02.png",
+        "hero-jump-03.png",
+        "hero-jump-04.png"
+      ]
+    }
+  },
+  "setting": "Dublin city street, Ireland, overcast daylight",
+  "style": "clean chunky pixel art, limited palette",
+  "backdrop": {
+    "sky": "#cdd8dc",
+    "far": "#b5c3ca",
+    "near": "#98a9b3"
+  }
+}

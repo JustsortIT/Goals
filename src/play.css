@@ -1,0 +1,74 @@
+/* The game page: nothing on it but the game, filling the window. Not part of the app theme. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0b12;
+  /* On a touchscreen: no scrolling, zooming or text selection while playing. */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Phaser sizes its canvas to this element (Scale.FIT), so it must fill the window. */
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* What the page says if the game cannot be loaded (app/frontend/game/boot.ts). */
+.game-message {
+  margin: 0;
+  padding-top: 40vh;
+  color: #e8e6df;
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+  text-align: center;
+}
+
+/* Admin mode on a kiosk (app/frontend/game/shell/kioskAdmin.ts): a strip along the bottom of the
+   screen with a button for each coin it can pretend to take. In the middle, clear of the game's own
+   touch buttons in the bottom corners. */
+.kiosk-admin {
+  position: fixed;
+  bottom: 1vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  max-width: 62vw;
+  padding: 1vh 1.2vw;
+  border: 2px solid #ffd76a;
+  border-radius: 6px;
+  background: rgba(11, 11, 18, 0.88);
+  color: #ffd76a;
+  font:
+    600 clamp(10px, 1.3vw, 20px) / 1.2 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: nowrap;
+}
+
+.kiosk-admin__coin {
+  min-width: 6.5vw;
+  min-height: 6vh;
+  padding: 0 1vw;
+  border: 2px solid #ffd76a;
+  border-radius: 6px;
+  background: #23233a;
+  color: #fff;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+.kiosk-admin__coin:active {
+  background: #ffd76a;
+  color: #0b0b12;
+}
