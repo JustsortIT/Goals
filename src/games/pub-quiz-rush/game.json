@@ -1,0 +1,190 @@
+{
+  "name": "PUB QUIZ RUSH",
+  "line": "ANSWER BEFORE TIME RUNS OUT",
+  "rounds": 15,
+  "time": { "startMs": 10000, "stepMs": 400, "endMs": 5000 },
+  "points": { "base": 100, "speedBonus": 100 },
+  "streakLife": 5,
+  "questions": [
+    {
+      "level": 1,
+      "text": "What colour is the middle of the Irish flag?",
+      "answers": ["White", "Green", "Orange", "Blue"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "How many players are on a Gaelic football team?",
+      "answers": ["15", "11", "13", "21"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "What is the capital of Ireland?",
+      "answers": ["Dublin", "Cork", "Galway", "Belfast"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "Which musical instrument is on Irish euro coins?",
+      "answers": ["Harp", "Fiddle", "Drum", "Flute"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "How many days are in a leap year?",
+      "answers": ["366", "365", "364", "367"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "Which planet is known as the red planet?",
+      "answers": ["Mars", "Venus", "Jupiter", "Saturn"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "How many pints are in a gallon?",
+      "answers": ["8", "4", "10", "12"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "Which insect makes honey?",
+      "answers": ["Bee", "Ant", "Moth", "Beetle"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "What is frozen water called?",
+      "answers": ["Ice", "Steam", "Mist", "Dew"],
+      "correct": 0
+    },
+    {
+      "level": 1,
+      "text": "How many sides has a triangle?",
+      "answers": ["3", "4", "5", "6"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "Which province is Galway in?",
+      "answers": ["Connacht", "Munster", "Leinster", "Ulster"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "What is the longest river in Ireland?",
+      "answers": ["Shannon", "Liffey", "Lee", "Boyne"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "Which plant is a symbol of Ireland?",
+      "answers": ["Shamrock", "Rose", "Thistle", "Daffodil"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "How many points is a goal worth in Gaelic football?",
+      "answers": ["3", "1", "2", "5"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "How many counties are in the Republic of Ireland?",
+      "answers": ["26", "32", "6", "24"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "What is the highest mountain in Ireland?",
+      "answers": ["Carrauntoohil", "Slieve Donard", "Croagh Patrick", "Errigal"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "Which gas do plants take in from the air?",
+      "answers": ["Carbon dioxide", "Oxygen", "Helium", "Neon"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "How many strings does a standard violin have?",
+      "answers": ["4", "6", "5", "3"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "What is the hardest natural substance?",
+      "answers": ["Diamond", "Gold", "Iron", "Quartz"],
+      "correct": 0
+    },
+    {
+      "level": 2,
+      "text": "In which sport might you score a try?",
+      "answers": ["Rugby", "Golf", "Darts", "Snooker"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What is the Irish name for Ireland?",
+      "answers": ["Eire", "Alba", "Cymru", "Breizh"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "Which Irish county is known as the Kingdom?",
+      "answers": ["Kerry", "Clare", "Mayo", "Sligo"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "Which is the smallest county in Ireland by area?",
+      "answers": ["Louth", "Carlow", "Longford", "Leitrim"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "How many bones are in the adult human body?",
+      "answers": ["206", "212", "300", "180"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What is the chemical symbol for gold?",
+      "answers": ["Au", "Ag", "Go", "Gd"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What is the largest ocean on Earth?",
+      "answers": ["Pacific", "Atlantic", "Indian", "Arctic"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What does the Irish toast Slainte mean?",
+      "answers": ["Health", "Welcome", "Music", "Friend"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "In which month is St Patrick's Day?",
+      "answers": ["March", "April", "January", "May"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What is the square root of 144?",
+      "answers": ["12", "14", "16", "11"],
+      "correct": 0
+    },
+    {
+      "level": 3,
+      "text": "What is the capital of Australia?",
+      "answers": ["Canberra", "Sydney", "Melbourne", "Perth"],
+      "correct": 0
+    }
+  ]
+}
