@@ -220,11 +220,11 @@ export class Play extends Phaser.Scene {
     this.gone = [];
 
     const { board } = LAYOUT;
-    this.question.setText(this.asked.text);
+    this.fitText(this.question, this.asked.text, board.height - 2);
     centerPixelText(this.question, board.x + board.width / 2, board.y + board.height / 2);
     this.buttons.forEach((button, index) => {
       const { x, y } = button.face;
-      button.label.setText(this.asked.answers[index]);
+      this.fitText(button.label, this.asked.answers[index], LAYOUT.button.height - 8);
       centerPixelText(button.label, x + LAYOUT.button.width / 2, y + LAYOUT.button.height / 2);
       button.face.setFillStyle(BUTTON_COLOURS[index]).setAlpha(1);
       button.label.setAlpha(1);
@@ -234,6 +234,14 @@ export class Play extends Phaser.Scene {
     this.showLifeline();
     this.showHud();
     this.drawTimer();
+  }
+
+  /** Sets words in the largest size that still fits the height, because bigger words are easier to read. */
+  private fitText(text: Phaser.GameObjects.BitmapText, words: string, height: number): void {
+    for (const size of [FONT_SIZE.large, FONT_SIZE.medium]) {
+      text.setFontSize(size).setText(words);
+      if (text.height <= height) return;
+    }
   }
 
   /** Takes two wrong answers away, once a play. What the question then scores is halved. */

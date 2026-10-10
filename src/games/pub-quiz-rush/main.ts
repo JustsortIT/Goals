@@ -16,9 +16,11 @@ import { Title } from './scenes/Title';
  * is what makes the text look clean; where that would leave wide empty borders, fit the window instead.
  */
 function crispZoom(): number {
-  const fit = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT);
+  // A screen pixel is more than a CSS pixel on a scaled display, and it is those that must divide evenly.
+  const ratio = window.devicePixelRatio || 1;
+  const fit = Math.min(window.innerWidth / GAME_WIDTH, window.innerHeight / GAME_HEIGHT) * ratio;
   const whole = Math.max(1, Math.floor(fit));
-  return fit / whole <= 1.34 ? whole : fit;
+  return (fit / whole <= 1.34 ? whole : fit) / ratio;
 }
 
 export function run(data: GameData): void {
