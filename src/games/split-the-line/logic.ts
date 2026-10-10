@@ -148,8 +148,8 @@ export function bonusAfter(cleared: number, bonus: BonusSettings | null): BonusK
 
 /**
  * The rounds of a bonus game, one for each glass, made by rule from the number of the pint that
- * has just been cleared: a rapid pour is that pint with a quicker tap, a narrower mark and more
- * surging; a moving glass is that pint with a quicker tap; two pints are that pint and another.
+ * has just been cleared: a rapid pour is that pint with a somewhat quicker tap and a somewhat
+ * narrower mark; a moving glass is that pint with a quicker tap; two pints are that pint and another.
  */
 export function bonusRounds(
   kind: BonusKind,
@@ -165,7 +165,6 @@ export function bonusRounds(
         ...base,
         flow: base.flow * bonus.rapid.flowFactor,
         band: Math.max(3, base.band * bonus.rapid.bandFactor),
-        surge: Math.min(0.6, base.surge + 0.1),
       },
     ];
   }

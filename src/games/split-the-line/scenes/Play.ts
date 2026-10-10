@@ -75,7 +75,7 @@ const VERDICT_WORDS: Record<Verdict, string> = {
 };
 
 const BONUS_WORDS: Record<BonusKind, { name: string; how: string }> = {
-  rapid: { name: 'RAPID POUR', how: 'FAST TAP, TINY MARK' },
+  rapid: { name: 'RAPID POUR', how: 'QUICK TAP, NARROW MARK' },
   moving: { name: 'MOVING GLASS', how: 'POUR WHEN UNDER THE TAP' },
   two: { name: 'TWO PINTS', how: 'LEFT AND RIGHT HALVES' },
 };

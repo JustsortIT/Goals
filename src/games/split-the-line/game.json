@@ -32,9 +32,9 @@
     "multiplier": 2,
     "lifeOnSuccess": true,
     "rapid": {
-      "flowFactor": 2,
-      "bandFactor": 0.55,
-      "timeMs": 7000
+      "flowFactor": 1.4,
+      "bandFactor": 0.85,
+      "timeMs": 8000
     },
     "moving": {
       "flowFactor": 1.6,

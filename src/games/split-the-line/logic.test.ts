@@ -280,7 +280,8 @@ describe('the bonus games', () => {
   it('can be won: a rapid pour has a window for the finger', () => {
     for (const cleared of bonus.after.filter((_, index) => bonus.kinds[index] === 'rapid')) {
       const [round] = bonusRounds('rapid', cleared, game.pour, bonus, GLASS_HEIGHT);
-      expect(((2 * round.band) / (round.flow * 1.6)) * 1000).toBeGreaterThan(60);
+      // A quarter of a second, even at the tap's fastest: a person can hit that.
+      expect(((2 * round.band) / (round.flow * 1.6)) * 1000).toBeGreaterThan(200);
       expect(round.centre / round.flow).toBeLessThan(bonus.rapid.timeMs / 1000);
     }
   });

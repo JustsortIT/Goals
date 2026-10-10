@@ -22,8 +22,9 @@ a life. It scores double (`multiplier`), and clearing it (every glass stopped in
 one life back (`lifeOnSuccess`). A bonus has a clock that starts when the first finger goes down, and
 one pour a glass: the tap shuts for good when the finger lifts or the time runs out.
 
-- **Rapid pour** (after pint 2): that pint's round with a tap 2x as quick, a mark 0.55x as wide and
-  a wilder surge, against a 7 s clock.
+- **Rapid pour** (after pint 2): that pint's round with a tap 1.4x as quick and a mark 0.85x as wide,
+  against an 8 s clock. (It was 2x and 0.55x at first, and too hard: a window of about 100 ms to let
+  go. It is now over 200 ms at the tap's fastest, and a test keeps it there.)
 - **Moving glass** (after pint 4): the glass swings along the bar under the tap (a sine, amplitude
   56 px, 3.6 s a swing) and only fills while it is within `CATCH_HALF` (34 px) of the spout; the rest
   of the stream splashes on the bar. 16 s clock. The finger just holds; the timing is when to let go,
@@ -114,20 +115,32 @@ In `game.json`, checked by `gameData.ts`:
 
 ## Pictures it needs
 
-None from outside: everything is drawn in code. A pub's own art would be:
+None from outside: everything is drawn in code (`art.ts`, `glassView.ts`), aiming at a photograph's
+look rather than pixel art's. A pub's own art would be:
 
-- The backdrop, 480 by 270: brick wall, two shelves of bottles with blank labels, two pendant
-  lamps, a row of three taps with blank handles (the middle one pours, its spout at x 296, y 58),
-  a brass rail at y 196 and a polished bar with a drip mat. No lettering.
-- The glass's front, 104 by 170: clear glass with the stout drawn behind it, wider at the top.
-  Its inside is 156 px tall, 60 px wide at the foot and 84 at the rim.
+- **The backdrop, 480 by 270**: a brick wall and wood panelling and two mirrored back-bar shelf units
+  with bottles (blank labels), drawn a little out of focus (a 0.8 px blur, as if the camera were
+  focused on the glass), two copper pendant lamps with a cone of light and a glow, soft bokeh points,
+  a row of three chrome taps with lacquered blank handles (the middle one pours, its spout at x 296,
+  y 58), a brass rail at y 196, a polished bar that shines under the lamps with a drip tray and two
+  blank beer mats. No lettering.
+- **The glass, in three pictures of 104 by 170** that line up: its back (a faint tint and the far
+  half of the rim), the drink (the whole glass full: ruby at the edges, black in the middle, bubbles
+  on the glass; it is cropped from the bottom to show how full the glass is) and its front (thick
+  walls with light along them as smooth lines, the lamps' reflections, the lens of the foot, the near
+  half of the rim, drops of condensation). The inside is 156 px tall, 60 px wide at the foot and 84
+  at the rim. A soft shadow, 140 by 28, goes under it.
+- **The head, the surge and the bubbles** are drawn each frame in `glassView.ts` from the head colour:
+  four bands of foam, bubbles in it, its ragged lower edge, a ring of foam on the top, the cloudy
+  tan surge under it that clears over about 3 s, and bubbles running down the walls.
 - A vignette, 480 by 270.
-
-Words are written by the game in the pixel font: the title (14 characters), the line (30), the
-verdicts (`SPLIT!`, `CLOSE ENOUGH`, `SHORT`, `OVER`, `SPILLED`), `+n`, `A LIFE LOST`, the hint
-(`HOLD TO POUR`, `LET GO ON THE MARK`), `PINT n OF n`, `BONUS GAME`, `RAPID POUR`, `MOVING GLASS`,
-`TWO PINTS`, `BONUS CLEARED`, `BONUS MISSED`, `NO LIFE LOST`, `+1 LIFE`, `TIME n.n`, and the end screens (`LAST ORDERS`,
-`EVERY PINT POURED`, `ENTER YOUR INITIALS`, `THIS WEEK`).
+- The drink's body is drawn from `drink.liquid` (ruby at the edges is mixed in), so a pub's other
+  colours work in principle, though a pale drink would want its own art.
+  Words are written by the game in the pixel font: the title (14 characters), the line (30), the
+  verdicts (`SPLIT!`, `CLOSE ENOUGH`, `SHORT`, `OVER`, `SPILLED`), `+n`, `A LIFE LOST`, the hint
+  (`HOLD TO POUR`, `LET GO ON THE MARK`), `PINT n OF n`, `BONUS GAME`, `RAPID POUR`, `MOVING GLASS`,
+  `TWO PINTS`, `BONUS CLEARED`, `BONUS MISSED`, `NO LIFE LOST`, `+1 LIFE`, `TIME n.n`, and the end screens (`LAST ORDERS`,
+  `EVERY PINT POURED`, `ENTER YOUR INITIALS`, `THIS WEEK`).
 
 ## How a layout is made
 

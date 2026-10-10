@@ -6,6 +6,9 @@ export const SceneKey = { Boot: 'Boot', Title: 'Title', Play: 'Play', Over: 'Ove
 export const TextureKey = {
   Backdrop: 'tap-backdrop',
   Glass: 'tap-glass',
+  GlassBack: 'tap-glass-back',
+  Stout: 'tap-stout',
+  Shadow: 'tap-shadow',
   Vignette: 'tap-vignette',
 } as const;
 

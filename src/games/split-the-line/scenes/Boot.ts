@@ -3,7 +3,8 @@ import fontUrl from '../../../shell/fonts/kenney-mini.ttf?url';
 import { FontKey } from '../../../shell/keys';
 import { createPixelFont } from '../../../shell/pixelFont';
 import { createTextures } from '../art';
-import { SceneKey } from '../config';
+import { DATA_KEY, SceneKey } from '../config';
+import type { GameData } from '../gameData';
 
 /** Loads what every scene needs: the pixel font all text is written in, and the pictures. */
 export class Boot extends Phaser.Scene {
@@ -17,7 +18,8 @@ export class Boot extends Phaser.Scene {
 
   create(): void {
     createPixelFont(this);
-    createTextures(this);
+    const data = this.registry.get(DATA_KEY) as GameData;
+    createTextures(this, data.drink);
     this.scene.start(SceneKey.Title);
   }
 }

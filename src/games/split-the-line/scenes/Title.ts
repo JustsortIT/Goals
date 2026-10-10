@@ -32,9 +32,11 @@ export class Title extends Phaser.Scene {
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
     // An empty glass on the bar, waiting.
-    this.add
-      .image(GLASS.x - GLASS_ART.width / 2, GLASS.top - GLASS_ART.above, TextureKey.Glass)
-      .setOrigin(0, 0);
+    const glassX = GLASS.x - GLASS_ART.width / 2;
+    const glassY = GLASS.top - GLASS_ART.above;
+    this.add.image(GLASS.x - 70, GLASS.bottom - 6, TextureKey.Shadow).setOrigin(0, 0);
+    this.add.image(glassX, glassY, TextureKey.GlassBack).setOrigin(0, 0);
+    this.add.image(glassX, glassY, TextureKey.Glass).setOrigin(0, 0);
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0).setDepth(3);
     this.add
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLOUR.wash, 0.5)
