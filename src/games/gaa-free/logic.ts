@@ -216,3 +216,13 @@ export function flightProgress(t: number, endScale: number): { along: number; sc
   const scale = 1 / (1 + (1 / endScale - 1) * time);
   return { along: (1 - scale) / (1 - endScale), scale };
 }
+
+/**
+ * How many leaves the wind is carrying, from 0 to 1: none in a light wind, more as it gets strong.
+ * `push` is the wind as a share of the most there is (-1 to 1).
+ */
+export function leafIntensity(push: number): number {
+  const strength = Math.min(1, Math.abs(push));
+  const t = Math.min(1, Math.max(0, (strength - 0.3) / 0.55));
+  return t * t * (3 - 2 * t);
+}

@@ -10,6 +10,7 @@ import {
   goalGeometry,
   isKick,
   landingPoint,
+  leafIntensity,
   landScale,
   levelPoints,
   levelScale,
@@ -340,5 +341,17 @@ describe('the ball in flight', () => {
       expect(along).toBeGreaterThan(before);
       before = along;
     }
+  });
+});
+
+describe('the leaves in the wind', () => {
+  it('are none in a light wind, and more as it gets strong, either way it blows', () => {
+    expect(leafIntensity(0)).toBe(0);
+    expect(leafIntensity(0.3)).toBe(0);
+    expect(leafIntensity(0.6)).toBeGreaterThan(0);
+    expect(leafIntensity(0.6)).toBeLessThan(leafIntensity(0.8));
+    expect(leafIntensity(0.85)).toBe(1);
+    expect(leafIntensity(-0.7)).toBe(leafIntensity(0.7));
+    expect(leafIntensity(3)).toBe(1);
   });
 });

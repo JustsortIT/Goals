@@ -5,7 +5,8 @@
  * made, and woken, on the first touch. No Phaser imports.
  */
 
-export type Sound = 'kick' | 'net' | 'hit' | 'bonus' | 'miss' | 'clear' | 'win' | 'over' | 'click';
+export type Sound =
+  'kick' | 'net' | 'pop' | 'hit' | 'bonus' | 'miss' | 'clear' | 'win' | 'over' | 'click';
 
 const MASTER = 0.5;
 
@@ -42,6 +43,12 @@ class Sfx {
         this.burst(now, 0.05, 900, 'lowpass', 0.5);
         // The ball going away through the air.
         this.burst(now + 0.04, 0.45, 1400, 'bandpass', 0.07);
+        break;
+      case 'pop':
+        // A target breaking up.
+        this.tone(now, 'sawtooth', 420, 70, 0.2, 0.3);
+        this.burst(now, 0.2, 2400, 'bandpass', 0.45);
+        this.burst(now + 0.03, 0.12, 5000, 'highpass', 0.2);
         break;
       case 'net':
         // A ball in a net: a soft thud and the rustle of the mesh.

@@ -134,9 +134,17 @@ kiosk's `sound` flag.
 - **Landing**: in the net, the mesh ripples and the ball drops down it and bounces to rest on the
   ground (a soft thud and rustle). Over the bar or wide, it carries on and fades. Short, it hops on
   the grass.
-- **Flags on the stand's roof** (`flags.ts`) blow the way the wind does, out straight in a strong
-  wind, rippling on a calm day, and turn with every gust, on every screen. Their poles are in the
-  backdrop picture.
+- **A target that is hit** comes off the net and falls, turning, to the ground (free fall, speeding
+  up), where it explodes into pieces with a flash, a ring and a pop, and is gone. The net no longer
+  draws it. A ball that lands where it was counts as DONE: no score, no life lost.
+- **Flags on the stand's roof** (`flags.ts`) are maroon and white and all blow the same way, to the
+  right, out further in a stronger gust and rippling on a calm day, on every screen. Their poles
+  are in the backdrop picture. The flag by the pitch is the wind's own indicator and follows the
+  gusts both ways.
+- **Leaves** (`leaves.ts`, `leafIntensity` in `logic.ts`, tested): when the wind is above about a third
+  of the most there is, small leaves in autumn colours are carried across the screen the way the
+  wind is blowing, fluttering and turning, more of them the stronger it gets (up to 30). A fixed
+  set of shapes is used again, so none is made in the game loop.
 
 ## End screens, sound and hints
 

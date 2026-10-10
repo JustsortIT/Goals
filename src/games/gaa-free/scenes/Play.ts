@@ -4,7 +4,8 @@ import { continueGate, type KioskState } from '../../../shell/kiosk';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
 import { sfx } from '../audio';
 import { RoofFlags } from '../flags';
-import { addGoalLayers, drawGoal, type GoalLayers } from '../goalArt';
+import { Leaves } from '../leaves';
+import { addGoalLayers, drawGoal, drawTarget, type GoalLayers } from '../goalArt';
 import { BALL, COLOUR, DATA_KEY, KICK, PLAY, SceneKey, TextureKey, WIND } from '../config';
 import { Controls } from '../controls';
 import type { GameData } from '../gameData';
@@ -17,9 +18,11 @@ import {
   isKick,
   landingPoint,
   landScale,
+  leafIntensity,
   levelPoints,
   levelScale,
   resolveShot,
+  shade,
   targetSpots,
   windAt,
   type GoalGeometry,
@@ -75,6 +78,9 @@ export class Play extends Phaser.Scene {
   private windGfx!: Phaser.GameObjects.Graphics;
   private windLabel!: Phaser.GameObjects.BitmapText;
   private roofFlags!: RoofFlags;
+  private leaves!: Leaves;
+  /** The wind now, as a share of the most there is: -1 to 1, right positive. */
+  private windPush = 0;
   private hintText!: Phaser.GameObjects.BitmapText;
   private hintDot!: Phaser.GameObjects.Arc;
   private ball!: Phaser.GameObjects.Image;
@@ -148,6 +154,7 @@ export class Play extends Phaser.Scene {
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
     this.layers = addGoalLayers(this);
     this.roofFlags = new RoofFlags(this);
+    this.leaves = new Leaves(this);
 
     this.bonusGlow = this.add
       .image(0, 0, TextureKey.Glow)
@@ -236,6 +243,7 @@ export class Play extends Phaser.Scene {
     if (this.phase !== 'waiting' && this.phase !== 'ending') this.levelTime += delta;
     this.moveBonus();
     this.drawWind();
+    this.leaves.update(delta, this.windPush, leafIntensity(this.windPush));
     this.showHint(delta);
 
     if (this.phase === 'ready') {
@@ -293,8 +301,9 @@ export class Play extends Phaser.Scene {
     g.clear();
     const { wind } = this.data_;
     const now = windAt(this.levelTime, wind, this.level);
-    // The flags on the roof blow with the wind, whether or not there is a gauge to show it.
-    this.roofFlags.update(this.time.now, Phaser.Math.Clamp(now / WIND.most, -1, 1));
+    this.windPush = Phaser.Math.Clamp(now / WIND.most, -1, 1);
+    // The flags on the roof blow harder in a stronger gust, whether or not there is a gauge.
+    this.roofFlags.update(this.time.now, Math.abs(this.windPush));
     this.windLabel.setVisible(wind !== null);
     if (!wind) return;
 
@@ -476,7 +485,8 @@ export class Play extends Phaser.Scene {
       this.cleared[shot.index] = true;
       this.drawGoalAt(this.geometry.scale);
       this.ring(this.spots[shot.index], target.colour);
-      this.burst(down.x, down.y, [target.colour, 0xffffff], 10, 34);
+      this.burst(down.x, down.y, [target.colour, 0xffffff], 8, 28);
+      this.breakTarget(shot.index);
       sfx.play('hit');
       this.pop(`+${points}`, popX, popY, COLOUR.gold);
     } else if (shot.kind === 'bonus' && this.data_.bonus && bonusAtLanding) {
@@ -547,6 +557,55 @@ export class Play extends Phaser.Scene {
       delay: 90,
       ease: 'Bounce.easeOut',
     });
+  }
+
+  /**
+   * A target that has been hit comes off the net and falls, turning, to the ground, where it
+   * explodes into pieces and is gone.
+   */
+  private breakTarget(index: number): void {
+    const spot = this.spots[index];
+    const { colour } = this.data_.targets[index];
+    const piece = this.add.graphics({ x: spot.x, y: spot.y }).setDepth(1.6);
+    drawTarget(piece, 0, 0, spot.r, colour);
+    const ground = this.geometry.baseY - 4 * this.geometry.scale;
+    this.tweens.add({
+      targets: piece,
+      y: ground,
+      x: spot.x + Phaser.Math.Between(-6, 6),
+      rotation: Phaser.Math.FloatBetween(-1.2, 1.2),
+      delay: 70,
+      // Free fall: it speeds up the whole way down.
+      duration: 180 + Math.sqrt(Math.max(0, ground - spot.y)) * 36,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        this.explode(piece.x, piece.y, colour, spot.r);
+        piece.destroy();
+      },
+    });
+  }
+
+  /** A flash, a ring and a spray of pieces in the target's colours. */
+  private explode(x: number, y: number, colour: number, size: number): void {
+    sfx.play('pop');
+    const flash = this.add.circle(x, y, size * 0.9, 0xffffff, 0.9).setDepth(1.7);
+    this.tweens.add({
+      targets: flash,
+      scale: 2.2,
+      alpha: 0,
+      duration: 240,
+      onComplete: () => flash.destroy(),
+    });
+    this.ring({ x, y, r: size * 0.8 }, colour);
+    const pieces = 16 + Math.round(size);
+    this.burst(
+      x,
+      y - 2,
+      [colour, 0xffffff, shade(colour, 0.6), shade(colour, 1.25)],
+      pieces,
+      70,
+      3,
+    );
   }
 
   /** Rings that spread out across the net from where a ball has hit it. */
@@ -756,11 +815,12 @@ export class Play extends Phaser.Scene {
     colours: readonly number[],
     count: number,
     force: number,
+    size = 2,
   ): void {
     for (let piece = 0; piece < count; piece += 1) {
       const angle = Math.random() * Math.PI * 2;
       const reach = force * (0.4 + Math.random() * 0.6);
-      const bit = this.add.rectangle(x, y, 2, 2, colours[piece % colours.length]).setDepth(5);
+      const bit = this.add.rectangle(x, y, size, size, colours[piece % colours.length]).setDepth(5);
       this.tweens.add({
         targets: bit,
         x: x + Math.cos(angle) * reach,

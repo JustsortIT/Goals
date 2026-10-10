@@ -88,11 +88,15 @@ export const WIND = {
   gauge: { x: GAME_WIDTH / 2, y: 25, half: 44 },
 } as const;
 
-/** The flags on the stand's roof: where their poles are, and the colours along them. */
+/** The flags on the stand's roof: where their poles are, and the colours along them (maroon and white). */
 export const ROOF_FLAG_TOP = 36;
+const MAROON = 0x7b1e3a;
 export const ROOF_FLAGS = [
-  { x: 96, colours: [0x169b62, 0xffffff, 0xff883e] },
-  { x: 184, colours: [0x1f8a4c, 0x1f8a4c, 0xf2b920] },
-  { x: 296, colours: [0xf2b920, 0x1f8a4c, 0x1f8a4c] },
-  { x: 384, colours: [0x169b62, 0xffffff, 0xff883e] },
+  { x: 96, colours: [MAROON, 0xffffff, MAROON] },
+  { x: 184, colours: [MAROON, 0xffffff, MAROON] },
+  { x: 296, colours: [MAROON, 0xffffff, MAROON] },
+  { x: 384, colours: [MAROON, 0xffffff, MAROON] },
 ] as const;
+
+/** Leaves carried by a strong wind: how many there can be at most. */
+export const LEAVES = { count: 30 } as const;

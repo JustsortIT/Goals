@@ -93,26 +93,9 @@ export function drawGround(g: Graphics, geometry: GoalGeometry): void {
 }
 
 /** One target as a painted board: shadowed, rimmed, banded, with a glint. */
-function drawTarget(
-  g: Graphics,
-  x: number,
-  y: number,
-  r: number,
-  colour: number,
-  done: boolean,
-): void {
+export function drawTarget(g: Graphics, x: number, y: number, r: number, colour: number): void {
   g.fillStyle(0x000000, 0.28);
   g.fillCircle(x + 1.5, y + 2.5, r);
-  if (done) {
-    g.fillStyle(shade(COLOUR.hit, 0.62), 1);
-    g.fillCircle(x, y, r);
-    g.fillStyle(0x3aa655, 1);
-    g.fillCircle(x, y, Math.max(1, r - 1));
-    g.lineStyle(Math.max(1, Math.round(r / 4)), 0xffffff, 0.95);
-    g.lineBetween(x - r * 0.45, y, x - r * 0.1, y + r * 0.38);
-    g.lineBetween(x - r * 0.1, y + r * 0.38, x + r * 0.5, y - r * 0.4);
-    return;
-  }
   g.fillStyle(shade(colour, 0.6), 1);
   g.fillCircle(x, y, r);
   g.fillStyle(colour, 1);
@@ -188,10 +171,11 @@ export function drawNet(
     );
   }
 
-  // The targets, hung in the net.
+  // The targets, hung in the net. One that has been hit is gone: it fell and broke up.
   targets.forEach((target, index) => {
+    if (cleared[index] === true) return;
     const { x, y, r } = spots[index];
-    drawTarget(g, x, y, r, target.colour, cleared[index] === true);
+    drawTarget(g, x, y, r, target.colour);
   });
 
   // The bar's shadow on the net behind it.
