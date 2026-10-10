@@ -6,7 +6,21 @@
  */
 
 export type Sound =
-  'click' | 'split' | 'close' | 'miss' | 'spill' | 'slide' | 'clear' | 'win' | 'over';
+  | 'click'
+  | 'split'
+  | 'close'
+  | 'miss'
+  | 'spill'
+  | 'slide'
+  | 'clear'
+  | 'win'
+  | 'over'
+  | 'throw'
+  | 'stick'
+  | 'bull'
+  | 'clink'
+  | 'buzz'
+  | 'arrive';
 
 const MASTER = 0.5;
 
@@ -67,6 +81,34 @@ class Sfx {
         this.burst(now, 0.7, 1400, 'bandpass', 0.5);
         this.burst(now + 0.1, 0.5, 600, 'lowpass', 0.4);
         this.tone(now, 'triangle', 200, 90, 0.4, 0.25);
+        break;
+      case 'throw':
+        // A dart through the air.
+        this.burst(now, 0.16, 2600, 'highpass', 0.12);
+        break;
+      case 'stick':
+        // A dart in cork: a short knock.
+        this.tone(now, 'triangle', 220, 90, 0.08, 0.55);
+        this.burst(now, 0.05, 1500, 'bandpass', 0.3);
+        break;
+      case 'bull':
+        // The bull: a bell and the bar shouting.
+        [880, 1318, 1760].forEach((hertz, step) => {
+          this.tone(now + step * 0.06, 'sine', hertz, hertz, 0.7, 0.3);
+        });
+        this.cheer(now, 1.1, 0.7);
+        break;
+      case 'clink':
+        // A glass set down and a coin in the till.
+        this.tone(now, 'sine', 2093, 2093, 0.22, 0.28);
+        this.tone(now + 0.04, 'sine', 3136, 3136, 0.18, 0.18);
+        break;
+      case 'buzz':
+        this.tone(now, 'sawtooth', 130, 100, 0.22, 0.3);
+        break;
+      case 'arrive':
+        // Someone comes up to the bar.
+        this.tone(now, 'sine', 520, 640, 0.07, 0.12);
         break;
       case 'slide':
         // A glass pushed along the bar.

@@ -24,9 +24,50 @@ export interface Difficulty {
   markHigh: number;
 }
 
+/** The bonus games played by pouring: they use the glass and the taps, in the Play scene. */
+export type PourBonusKind = 'rapid' | 'moving' | 'two';
+/** The bonus mini games, each a scene of its own: darts, and serving pints to customers. */
+export type MiniBonusKind = 'darts' | 'serve';
 /** The kinds of bonus game there are. */
-export type BonusKind = 'rapid' | 'moving' | 'two';
-const BONUS_KINDS: readonly BonusKind[] = ['rapid', 'moving', 'two'];
+export type BonusKind = PourBonusKind | MiniBonusKind;
+const BONUS_KINDS: readonly BonusKind[] = ['rapid', 'moving', 'two', 'darts', 'serve'];
+export const isMini = (kind: BonusKind): kind is MiniBonusKind =>
+  kind === 'darts' || kind === 'serve';
+
+/** Darts: a crosshair sways over the board and a tap throws; the darts have to add up to the target. */
+export interface DartsSettings {
+  /** How many darts a round, and the score they have to add up to for the first pint it comes after. */
+  throws: number;
+  targetStart: number;
+  /** How much more it asks for each pint further on. */
+  targetStep: number;
+  /** How long the crosshair takes to go once across the board, and how much quicker each pint further on. */
+  periodMs: number;
+  speedUp: number;
+  /** The clock, and what each point on the board is worth (times the pint's number). */
+  timeMs: number;
+  pointsEach: number;
+}
+
+/** Serve the pints: customers come to the bar and each wants a drink; a tap sends the pint to them. */
+export interface ServeSettings {
+  customers: number;
+  /** When the first comes, how far apart they come, how much sooner each pint further on, and never sooner than. */
+  firstMs: number;
+  gapMs: number;
+  gapStep: number;
+  minGapMs: number;
+  /** How long a customer waits, how much less each pint further on, and never less than. */
+  patienceMs: number;
+  patienceStep: number;
+  minPatienceMs: number;
+  /** How long before the next pint is ready, and how much patience a wrong pint takes away. */
+  pintGapMs: number;
+  wrongPenaltyMs: number;
+  /** How many have to be served, and what each is worth (times the pint's number, more for the quick). */
+  needed: number;
+  pointsEach: number;
+}
 
 /**
  * The bonus games that come up between pints. They never cost a life, but a bonus cleared scores
@@ -45,6 +86,8 @@ export interface BonusSettings {
   moving: { flowFactor: number; amplitude: number; periodMs: number; timeMs: number };
   /** Two pints: two glasses at once, the left half of the screen for one tap, the right for the other. */
   two: { timeMs: number };
+  darts: DartsSettings;
+  serve: ServeSettings;
 }
 
 export interface GameData {
@@ -129,11 +172,56 @@ function readDifficulty(value: unknown): Difficulty {
   return pour;
 }
 
+function readDarts(value: Record<string, unknown>): DartsSettings {
+  const what = 'darts bonus';
+  const throws = readNumber(value, 'throws', 1, 6, what);
+  if (!Number.isInteger(throws)) throw new Error('The darts bonus needs a whole number of throws.');
+  const settings: DartsSettings = {
+    throws,
+    targetStart: readNumber(value, 'targetStart', 10, 300, what),
+    targetStep: readNumber(value, 'targetStep', 0, 30, what),
+    periodMs: readNumber(value, 'periodMs', 1200, 8000, what),
+    speedUp: readNumber(value, 'speedUp', 0, 0.3, what),
+    timeMs: readNumber(value, 'timeMs', 6000, 60000, what),
+    pointsEach: readNumber(value, 'pointsEach', 1, 20, what),
+  };
+  // Three treble twenties is the most a dart can make: a target above that cannot be won.
+  if (settings.targetStart > throws * 60)
+    throw new Error('The darts target is more than the darts can make.');
+  return settings;
+}
+
+function readServe(value: Record<string, unknown>, after: number[]): ServeSettings {
+  const what = 'serve bonus';
+  const settings: ServeSettings = {
+    customers: readNumber(value, 'customers', 3, 14, what),
+    firstMs: readNumber(value, 'firstMs', 300, 5000, what),
+    gapMs: readNumber(value, 'gapMs', 600, 5000, what),
+    gapStep: readNumber(value, 'gapStep', 0, 300, what),
+    minGapMs: readNumber(value, 'minGapMs', 500, 4000, what),
+    patienceMs: readNumber(value, 'patienceMs', 2500, 20000, what),
+    patienceStep: readNumber(value, 'patienceStep', 0, 1000, what),
+    minPatienceMs: readNumber(value, 'minPatienceMs', 1500, 15000, what),
+    pintGapMs: readNumber(value, 'pintGapMs', 100, 2000, what),
+    wrongPenaltyMs: readNumber(value, 'wrongPenaltyMs', 0, 5000, what),
+    needed: readNumber(value, 'needed', 1, 14, what),
+    pointsEach: readNumber(value, 'pointsEach', 1, 200, what),
+  };
+  if (!Number.isInteger(settings.customers) || !Number.isInteger(settings.needed))
+    throw new Error('The serve bonus needs whole numbers of customers and needed.');
+  if (settings.needed > settings.customers)
+    throw new Error('The serve bonus needs more customers served than there are.');
+  if (settings.minGapMs > settings.gapMs || settings.minPatienceMs > settings.patienceMs)
+    throw new Error('The serve bonus has a minimum above its start.');
+  void after;
+  return settings;
+}
+
 function readBonus(value: unknown, rounds: number): BonusSettings | null {
   if (value === undefined || value === null) return null;
   if (!isObject(value)) throw new Error('The bonus games are not a set of settings.');
   const what = 'bonus';
-  const { after, kinds, rapid, moving, two } = value;
+  const { after, kinds, rapid, moving, two, darts, serve } = value;
   if (!Array.isArray(after) || !Array.isArray(kinds) || after.length !== kinds.length)
     throw new Error('The bonus needs as many kinds as it has places to come up (after).');
   after.forEach((place, index) => {
@@ -144,8 +232,14 @@ function readBonus(value: unknown, rounds: number): BonusSettings | null {
     if (!BONUS_KINDS.includes(kind as BonusKind))
       throw new Error(`The bonus kinds can only be ${BONUS_KINDS.join(', ')}.`);
   });
-  if (!isObject(rapid) || !isObject(moving) || !isObject(two))
-    throw new Error('The bonus needs settings for rapid, moving and two.');
+  if (
+    !isObject(rapid) ||
+    !isObject(moving) ||
+    !isObject(two) ||
+    !isObject(darts) ||
+    !isObject(serve)
+  )
+    throw new Error('The bonus needs settings for rapid, moving, two, darts and serve.');
   return {
     after: after as number[],
     kinds: kinds as BonusKind[],
@@ -163,6 +257,8 @@ function readBonus(value: unknown, rounds: number): BonusSettings | null {
       timeMs: readNumber(moving, 'timeMs', 5000, 40000, 'moving bonus'),
     },
     two: { timeMs: readNumber(two, 'timeMs', 5000, 40000, 'two-pint bonus') },
+    darts: readDarts(darts),
+    serve: readServe(serve, after as number[]),
   };
 }
 

@@ -17,28 +17,53 @@ a line down its middle, not a brand's logo, because **no brands or logos** may b
 
 ## Bonus games
 
-After pints 2, 4 and 6 a bonus game comes up (set in `game.json` under `bonus`). A bonus never costs
-a life. It scores double (`multiplier`), and clearing it (every glass stopped inside its mark) gives
-one life back (`lifeOnSuccess`). A bonus has a clock that starts when the first finger goes down, and
-one pour a glass: the tap shuts for good when the finger lifts or the time runs out.
+After pints 2, 3, 5, 6 and 7 a bonus game comes up (set in `game.json` under `bonus`: `after` and
+`kinds`, in the same order). A bonus never costs a life. It scores double (`multiplier`), and
+clearing it gives one life back (`lifeOnSuccess`). Three are played by pouring, in the Play scene,
+and two are mini games, each a scene of its own. The mini games are played while Play is paused,
+and give it their result (`mini.ts`: `returnToPlay`, which calls `Play.miniDone`).
+
+Pouring bonuses (a clock that starts at the first finger down, one pour a glass: the tap shuts for
+good when the finger lifts or the time runs out):
 
 - **Rapid pour** (after pint 2): that pint's round with a tap 1.4x as quick and a mark 0.85x as wide,
   against an 8 s clock. (It was 2x and 0.55x at first, and too hard: a window of about 100 ms to let
   go. It is now over 200 ms at the tap's fastest, and a test keeps it there.)
-- **Moving glass** (after pint 4): the glass swings along the bar under the tap (a sine, amplitude
+- **Moving glass** (after pint 5): the glass swings along the bar under the tap (a sine, amplitude
   56 px, 3.6 s a swing) and only fills while it is within `CATCH_HALF` (34 px) of the spout; the rest
   of the stream splashes on the bar. 16 s clock. The finger just holds; the timing is when to let go,
   and the glass is only filling part of the time, so the pour is slower.
-- **Two pints** (after pint 6): two glasses under the left and right taps, at once. A finger on the
+- **Two pints** (after pint 7): two glasses under the left and right taps, at once. A finger on the
   left half of the screen holds the left tap, one on the right half the right tap. 16 s clock. It can
   be done with ONE finger (pour one glass, lift, move over, pour the other: the test does this), so it
   does not need two touches at once, but two fingers do it in half the time. **Whether two fingers
   reach the page on a real kiosk is not yet known: try it.**
 
-All of it is made by rule from the pint just cleared (`bonusRounds` in `logic.ts`), and tested: a
-rapid pour has a finger window over 60 ms and a pour that takes less than its clock; a moving glass is
-under the tap over 30% of the time and the pour fits in 60% of its clock; two pints pour one after the
-other in under 70% of the clock.
+Mini games:
+
+- **Darts** (after pint 3; `scenes/Darts.ts`, `darts.ts`): a dartboard hangs on a bare brick wall. A
+  crosshair wanders over the board (a Lissajous figure, so it never repeats in a way that can be
+  learned, and reaches a little past the edge); a tap throws a dart where it is, with a 0.23 s flight
+  that shrinks as it goes. Three darts have to add up to the target, which is 36 for the first pint it
+  can come after and 6 more for each pint further on (never over 180, the most three darts can make).
+  The crosshair is quicker (+8% a pint) as it goes on. 22 s clock, which ends the round. The score of a
+  dart is the standard board's: bull 50, outer bull 25, trebles, doubles, singles, with the numbers in
+  the real order round the board; the rings are a little wider than a real board's so a finger's timing
+  can hit them. One finger, one tap a dart. Points: the total on the board, times 1, times the pint's
+  number.
+- **Serve the pints** (after pint 6; `scenes/Serve.ts`, `serve.ts`): customers come up to the bar one
+  after another and stand in one of four places; each has a bubble over their head showing which of
+  stout, lager or red ale they want, and a bar showing their patience, going from green to red; their
+  eyebrows and mouth change as it runs out. A pint is always ready on the tray at the left, and is a
+  drink somebody waiting wants. Tap the customer who wants it, and it slides along the bar to them. A
+  tap on the wrong customer wastes the pint (it goes off the bar) and costs them 1.5 s of patience. Serve
+  6 of the 8. Quick service is worth up to twice as much. The rules are a plain class, `ServeRun`, so a
+  test plays whole rounds: the customers are by rule from the pint's number (quicker and less patient
+  each pint further on, never two for the same place at once), and a player who takes 0.7 s to see the
+  pint wins every round it comes up in, while one who taps without looking does not. One finger.
+
+All of it is made by rule from the pint just cleared, and tested (`logic.test.ts`,
+`bonusGames.test.ts`).
 
 ## How it is played with fingers
 
@@ -76,25 +101,28 @@ kiosk a play is 3 lives.
 
 ## Files
 
-| File                        | What it is                                                                            |
-| --------------------------- | ------------------------------------------------------------------------------------- |
-| `start.ts`                  | `start(data)`: checks the data, then starts Phaser. PubPixels calls this              |
-| `game.json`                 | the content: name, line, rounds, the drink's colours, the mark's, the difficulty      |
-| `gameData.ts`               | reads and checks that content (pure)                                                  |
-| `logic.ts`, `logic.test.ts` | the rounds, the pour, judging and scoring (pure)                                      |
-| `controls.ts`               | a finger held down (left and right halves counted apart), or space / arrows           |
-| `tapsView.ts`               | the taps' moving parts: the handles pulled and shuddering, foam, a drop on the nozzle |
-| `glassView.ts`              | one glass on the bar: the stout, the mark and the glass; it slides along              |
-| `session.ts`                | a play as the kiosk sees it: start, coins while it lasts, one score                   |
-| `art.ts`                    | the pub, the taps, the bar and the glass, drawn in code once at load                  |
-| `audio.ts`                  | sounds made in code: the pour (louder as the tap opens), a ring for a split, ...      |
-| `scores.ts`                 | the week's scores as rows to draw                                                     |
-| `config.ts`                 | numbers and names                                                                     |
-| `main.ts`                   | makes the Phaser game                                                                 |
-| `scenes/Boot.ts`            | loads the pixel font, draws the pictures                                              |
-| `scenes/Title.ts`           | waits for a coin, or a tap when free                                                  |
-| `scenes/Play.ts`            | the glass, the pour, lives, the count for a coin when they run out                    |
-| `scenes/Over.ts`            | the score and rank, three initials if asked, and the week's top five                  |
+| File                                 | What it is                                                                            |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| `start.ts`                           | `start(data)`: checks the data, then starts Phaser. PubPixels calls this              |
+| `game.json`                          | the content: name, line, rounds, the drink's colours, the mark's, the difficulty      |
+| `gameData.ts`                        | reads and checks that content (pure)                                                  |
+| `logic.ts`, `logic.test.ts`          | the rounds, the pour, judging and scoring (pure)                                      |
+| `controls.ts`                        | a finger held down (left and right halves counted apart), or space / arrows           |
+| `darts.ts`, `serve.ts`               | the rules of the two mini games (pure), with their tests in `bonusGames.test.ts`      |
+| `artMini.ts`, `mini.ts`              | the mini games' pictures (board, darts, customers, pints) and the way back to Play    |
+| `scenes/Darts.ts`, `scenes/Serve.ts` | the two mini game scenes                                                              |
+| `tapsView.ts`                        | the taps' moving parts: the handles pulled and shuddering, foam, a drop on the nozzle |
+| `glassView.ts`                       | one glass on the bar: the stout, the mark and the glass; it slides along              |
+| `session.ts`                         | a play as the kiosk sees it: start, coins while it lasts, one score                   |
+| `art.ts`                             | the pub, the taps, the bar and the glass, drawn in code once at load                  |
+| `audio.ts`                           | sounds made in code: the pour (louder as the tap opens), a ring for a split, ...      |
+| `scores.ts`                          | the week's scores as rows to draw                                                     |
+| `config.ts`                          | numbers and names                                                                     |
+| `main.ts`                            | makes the Phaser game                                                                 |
+| `scenes/Boot.ts`                     | loads the pixel font, draws the pictures                                              |
+| `scenes/Title.ts`                    | waits for a coin, or a tap when free                                                  |
+| `scenes/Play.ts`                     | the glass, the pour, lives, the count for a coin when they run out                    |
+| `scenes/Over.ts`                     | the score and rank, three initials if asked, and the week's top five                  |
 
 ## What a pub would want its own
 
@@ -110,9 +138,13 @@ In `game.json`, checked by `gameData.ts`:
   does not fit in the glass.
 - `points` for a close and a split, and `splitTolerance`.
 - `bonus` (or none): `after` (the pints the bonuses come after, rising, before the last) and `kinds`
-  (`rapid`, `moving` or `two` for each), `multiplier` (1 to 5), `lifeOnSuccess`, and the settings
+  (`rapid`, `moving`, `two`, `darts` or `serve` for each), `multiplier` (1 to 5), `lifeOnSuccess`, and the settings
   of each kind (`rapid`: `flowFactor`, `bandFactor`, `timeMs`; `moving`: `flowFactor`,
-  `amplitude`, `periodMs`, `timeMs`; `two`: `timeMs`).
+  `amplitude`, `periodMs`, `timeMs`; `two`: `timeMs`; `darts`: `throws`, `targetStart`,
+  `targetStep`, `periodMs`, `speedUp`, `timeMs`, `pointsEach`; `serve`: `customers`, `needed`,
+  `firstMs`, `gapMs`, `gapStep`, `minGapMs`, `patienceMs`, `patienceStep`, `minPatienceMs`,
+  `pintGapMs`, `wrongPenaltyMs`, `pointsEach`). The data is refused if the darts target is more than
+  the darts can make, or more customers have to be served than there are.
 
 ## The taps in motion (`tapsView.ts`)
 
@@ -150,7 +182,13 @@ look rather than pixel art's. A pub's own art would be:
 - **The head, the surge and the bubbles** are drawn each frame in `glassView.ts` from the head colour:
   four bands of foam, bubbles in it, its ragged lower edge, a ring of foam on the top, the cloudy
   tan surge under it that clears over about 3 s, and bubbles running down the walls.
-- A vignette, 480 by 270.
+- **The mini games' pictures**: two more backdrops, 480 by 270 (the room across the bar, with two framed
+  views, a clock and no taps; and a bare brick wall with a lamp's pool of light for the dartboard), the
+  dartboard (about 236 px across, with sisal fibres, wire and a bevelled wood surround; its numbers are
+  written by the game), a dart seen in flight (11 by 34) and stuck in the board (14 by 14), five
+  customers (72 by 100, head and shoulders, lit from the left; the brows and mouth are drawn by the game)
+  and a pint of each of stout, lager and red ale (24 by 38).
+
 - The drink's body is drawn from `drink.liquid` (ruby at the edges is mixed in), so a pub's other
   colours work in principle, though a pale drink would want its own art.
   Words are written by the game in the pixel font: the title (14 characters), the line (30), the
@@ -171,6 +209,9 @@ Nothing yet. It uses the shell as it is: `sendInitials`, `fetchLeaderboard`, `st
 kiosk's `sound` flag.
 
 ## Not decided / ideas
+
+- A customer who comes back for a second drink, and a regular who always wants the same one.
+- Darts: a 501 mode, with doubles to finish.
 
 - A foam surge after the pour, so the head grows for a moment and has to settle before it counts.
 - Letting a player top up a pint, as in life, with a small extra pour.

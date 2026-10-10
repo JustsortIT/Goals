@@ -11,13 +11,13 @@
  */
 import type Phaser from 'phaser';
 import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
-import { GLASS, GLASS_HEIGHT, HANDLE, handleKey, SPOUT, TAPS, TextureKey } from './config';
+import { BOARD, GLASS, GLASS_HEIGHT, HANDLE, handleKey, SPOUT, TAPS, TextureKey } from './config';
 import { glassWidthAt } from './logic';
 
-type Ctx = CanvasRenderingContext2D;
-type Rgb = [number, number, number];
+export type Ctx = CanvasRenderingContext2D;
+export type Rgb = [number, number, number];
 
-function createTexture(
+export function createTexture(
   scene: Phaser.Scene,
   key: string,
   width: number,
@@ -35,32 +35,39 @@ function createTexture(
  * Small tools: colour, a seeded random, a canvas of our own.
  * ---------------------------------------------------------------------------------------- */
 
-const rgb = (hex: string): Rgb => [
+export const rgb = (hex: string): Rgb => [
   parseInt(hex.slice(1, 3), 16),
   parseInt(hex.slice(3, 5), 16),
   parseInt(hex.slice(5, 7), 16),
 ];
-const fromNumber = (hex: number): Rgb => [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
-const css = ([r, g, b]: Rgb, alpha = 1): string =>
+export const fromNumber = (hex: number): Rgb => [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+export const css = ([r, g, b]: Rgb, alpha = 1): string =>
   `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha})`;
-const mix = (a: Rgb, b: Rgb, t: number): Rgb => [
+export const mix = (a: Rgb, b: Rgb, t: number): Rgb => [
   a[0] + (b[0] - a[0]) * t,
   a[1] + (b[1] - a[1]) * t,
   a[2] + (b[2] - a[2]) * t,
 ];
-const scaleRgb = (a: Rgb, k: number): Rgb => [
+export const scaleRgb = (a: Rgb, k: number): Rgb => [
   Math.min(255, a[0] * k),
   Math.min(255, a[1] * k),
   Math.min(255, a[2] * k),
 ];
 
-const rect = (ctx: Ctx, colour: string, x: number, y: number, w: number, h: number): void => {
+export const rect = (
+  ctx: Ctx,
+  colour: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void => {
   ctx.fillStyle = colour;
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 };
 
 /** The same numbers every time: a small seeded random. */
-function seeded(seed: number): () => number {
+export function seeded(seed: number): () => number {
   let state = seed;
   return () => {
     state = (state + 0x6d2b79f5) | 0;
@@ -97,11 +104,11 @@ const PANEL_TOP = 148;
 
 const BRICKS = ['#6a3226', '#5f2b21', '#733a2b', '#5a2921', '#683025'].map(rgb);
 
-function drawBricks(ctx: Ctx): void {
-  rect(ctx, '#20120d', 0, 0, GAME_WIDTH, PANEL_TOP + 4);
+function drawBricks(ctx: Ctx, bottom: number = PANEL_TOP): void {
+  rect(ctx, '#20120d', 0, 0, GAME_WIDTH, bottom + 4);
   const brickW = 18;
   const brickH = 8;
-  for (let row = 0, y = 0; y < PANEL_TOP; row += 1, y += brickH) {
+  for (let row = 0, y = 0; y < bottom; row += 1, y += brickH) {
     const offset = row % 2 === 0 ? 0 : brickW / 2;
     for (let x = -offset, column = 0; x < GAME_WIDTH; x += brickW, column += 1) {
       const tone = BRICKS[Math.floor(lattice(column, row, 4) * BRICKS.length)];
@@ -114,9 +121,9 @@ function drawBricks(ctx: Ctx): void {
     }
   }
   // Dim the wall overall, so the lamps are what light it.
-  rect(ctx, 'rgba(18,7,3,0.3)', 0, 0, GAME_WIDTH, PANEL_TOP + 4);
+  rect(ctx, 'rgba(18,7,3,0.3)', 0, 0, GAME_WIDTH, bottom + 4);
 }
-function drawPanelling(ctx: Ctx): void {
+function drawPanelling(ctx: Ctx, top: number = PANEL_TOP, bottom: number = BAR_BACK): void {
   for (let x = 0; x < GAME_WIDTH; x += 14) {
     const board = ctx.createLinearGradient(x, 0, x + 14, 0);
     board.addColorStop(0, '#2a180d');
@@ -124,21 +131,21 @@ function drawPanelling(ctx: Ctx): void {
     board.addColorStop(0.62, '#3a2214');
     board.addColorStop(1, '#201109');
     ctx.fillStyle = board;
-    ctx.fillRect(x, PANEL_TOP, 14, BAR_BACK - PANEL_TOP);
+    ctx.fillRect(x, top, 14, bottom - top);
   }
   // Shaded where the bar stands in front of it, and the rail along the top.
-  const foot = ctx.createLinearGradient(0, PANEL_TOP, 0, BAR_BACK);
+  const foot = ctx.createLinearGradient(0, top, 0, bottom);
   foot.addColorStop(0, 'rgba(0,0,0,0)');
   foot.addColorStop(1, 'rgba(0,0,0,0.5)');
   ctx.fillStyle = foot;
-  ctx.fillRect(0, PANEL_TOP, GAME_WIDTH, BAR_BACK - PANEL_TOP);
-  const rail = ctx.createLinearGradient(0, PANEL_TOP - 3, 0, PANEL_TOP + 2);
+  ctx.fillRect(0, top, GAME_WIDTH, bottom - top);
+  const rail = ctx.createLinearGradient(0, top - 3, 0, top + 2);
   rail.addColorStop(0, '#b27a44');
   rail.addColorStop(0.4, '#7a4c26');
   rail.addColorStop(1, '#2a160a');
   ctx.fillStyle = rail;
-  ctx.fillRect(0, PANEL_TOP - 3, GAME_WIDTH, 5);
-  rect(ctx, 'rgba(255,214,160,0.45)', 0, PANEL_TOP - 3, GAME_WIDTH, 1);
+  ctx.fillRect(0, top - 3, GAME_WIDTH, 5);
+  rect(ctx, 'rgba(255,214,160,0.45)', 0, top - 3, GAME_WIDTH, 1);
 }
 /** A glass bottle, lit from the left: a bright band, the dark of its far side, a blank paper label. */
 function bottle(
@@ -263,15 +270,102 @@ function drawShelves(ctx: Ctx): void {
   }
 }
 
-/** The wall, shelves and bottles, drawn on a canvas of their own so they can be put a little out of focus. */
-function drawWall(): HTMLCanvasElement {
-  const [canvas, ctx] = makeCanvas(GAME_WIDTH, GAME_HEIGHT);
-  drawBricks(ctx);
-  drawPanelling(ctx);
-  drawShelves(ctx);
-  return canvas;
+/** Which of the pub's rooms is drawn: the back-bar with the taps, the room across the bar, or a bare wall. */
+type Variant = 'bar' | 'room' | 'wall';
+/** Where the wall's panelling begins on the bare wall, which has no bar. */
+const WALL_PANEL = 200;
+
+/** A picture in a frame, blank of any words: a painted view of hills under a sky. */
+function drawFrame(ctx: Ctx, x: number, y: number, w: number, h: number, mood: number): void {
+  const depth = 4;
+  const sky = ctx.createLinearGradient(0, y, 0, y + h);
+  sky.addColorStop(0, mood === 0 ? '#8fb3cf' : '#d9a56b');
+  sky.addColorStop(1, mood === 0 ? '#d8e4e8' : '#f0d9a6');
+  ctx.fillStyle = sky;
+  ctx.fillRect(x, y, w, h);
+  for (const [colour, base, amp, seed] of [
+    ['#6f8f6a', 0.62, 9, 1],
+    ['#4d6b4c', 0.78, 7, 4],
+  ] as const) {
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    for (let px = 0; px <= w; px += 2) {
+      ctx.lineTo(
+        x + px,
+        y + h * base + Math.sin(px / 11 + seed + mood) * amp * 0.5 + Math.sin(px / 5 + seed) * 2,
+      );
+    }
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // The frame: a gilt bevel, lit from the top left, and a cream mount.
+  const frame = ctx.createLinearGradient(x - depth, y - depth, x + w + depth, y + h + depth);
+  frame.addColorStop(0, '#d8b36a');
+  frame.addColorStop(0.5, '#8a5f26');
+  frame.addColorStop(1, '#4a3010');
+  ctx.strokeStyle = frame;
+  ctx.lineWidth = depth;
+  ctx.strokeRect(x - depth / 2, y - depth / 2, w + depth, h + depth);
+  ctx.strokeStyle = '#e9e0c8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  rect(ctx, 'rgba(0,0,0,0.28)', x - depth, y + h + depth, w + depth * 2, 2);
 }
 
+/** A round wall clock with ticks and no numerals. */
+function drawClock(ctx: Ctx, x: number, y: number): void {
+  const rim = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, 15);
+  rim.addColorStop(0, '#f6efdc');
+  rim.addColorStop(1, '#d6ccb0');
+  ctx.fillStyle = '#3a2210';
+  ctx.beginPath();
+  ctx.arc(x, y, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = rim;
+  ctx.beginPath();
+  ctx.arc(x, y, 12.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#2a2014';
+  ctx.lineWidth = 1;
+  for (let tick = 0; tick < 12; tick += 1) {
+    const a = (tick * Math.PI) / 6;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.sin(a) * 9.5, y - Math.cos(a) * 9.5);
+    ctx.lineTo(x + Math.sin(a) * 11.5, y - Math.cos(a) * 11.5);
+    ctx.stroke();
+  }
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.sin(2.2) * 6, y - Math.cos(2.2) * 6);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.sin(5.9) * 9, y - Math.cos(5.9) * 9);
+  ctx.stroke();
+  ctx.fillStyle = '#7a1f2a';
+  ctx.fillRect(x - 1, y - 1, 2, 2);
+}
+
+/** The wall, drawn on a canvas of its own so it can be put a little out of focus. */
+function drawWall(variant: Variant): HTMLCanvasElement {
+  const [canvas, ctx] = makeCanvas(GAME_WIDTH, GAME_HEIGHT);
+  if (variant === 'wall') {
+    drawBricks(ctx, WALL_PANEL);
+    drawPanelling(ctx, WALL_PANEL, GAME_HEIGHT);
+    return canvas;
+  }
+  drawBricks(ctx);
+  drawPanelling(ctx);
+  if (variant === 'bar') {
+    drawShelves(ctx);
+  } else {
+    drawFrame(ctx, 40, 38, 62, 46, 0);
+    drawFrame(ctx, 378, 38, 62, 46, 1);
+    drawClock(ctx, 240, 58);
+  }
+  return canvas;
+}
 /* ------------------------------------------------------------------------------------------
  * The lamps, the taps and the bar.
  * ---------------------------------------------------------------------------------------- */
@@ -436,7 +530,7 @@ function drawDripTray(ctx: Ctx): void {
   }
 }
 
-function drawBar(ctx: Ctx): void {
+function drawBar(ctx: Ctx, tray = true): void {
   const rows = GAME_HEIGHT - BAR_BACK;
   const image = ctx.createImageData(GAME_WIDTH, rows);
   const dark = rgb('#3a1c0e');
@@ -479,25 +573,36 @@ function drawBar(ctx: Ctx): void {
   under.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = under;
   ctx.fillRect(0, BAR_BACK + 4, GAME_WIDTH, 8);
-  drawDripTray(ctx);
+  if (tray) drawDripTray(ctx);
 }
-function drawBackdrop(ctx: Ctx): void {
+function drawBackdrop(ctx: Ctx, variant: Variant = 'bar'): void {
   // The wall is a little out of focus, as a camera focused on the glass would have it.
   ctx.save();
   ctx.filter = 'blur(0.8px)';
-  ctx.drawImage(drawWall(), 0, 0);
+  ctx.drawImage(drawWall(variant), 0, 0);
   ctx.restore();
 
   drawLamp(ctx, 120, 20);
   drawLamp(ctx, 420, 20);
-  drawTaps(ctx);
-  drawBar(ctx);
+  if (variant === 'bar') drawTaps(ctx);
+  if (variant !== 'wall') drawBar(ctx, variant === 'bar');
+
+  if (variant === 'wall') {
+    // A lamp over the dartboard, which puts a pool of light on it and a shadow under it.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const pool = ctx.createRadialGradient(BOARD.x, BOARD.y - 6, 20, BOARD.x, BOARD.y, 170);
+    pool.addColorStop(0, 'rgba(255,226,170,0.34)');
+    pool.addColorStop(1, 'rgba(255,200,130,0)');
+    ctx.fillStyle = pool;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.restore();
+  }
 
   // A warm grade over the whole of it.
   ctx.fillStyle = 'rgba(255,160,70,0.05)';
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 }
-
 /* ------------------------------------------------------------------------------------------
  * The glass. It is made of three pictures that line up: the back of it, the drink, and the
  * front. The drink is cropped from the bottom to show how full it is, so it is all one picture
@@ -708,7 +813,15 @@ function drawVignette(ctx: Ctx): void {
  */
 export function createTextures(scene: Phaser.Scene, drink: { liquid: number }): void {
   const glassHeight = GLASS_ART.above + GLASS_HEIGHT + GLASS_ART.below;
-  createTexture(scene, TextureKey.Backdrop, GAME_WIDTH, GAME_HEIGHT, drawBackdrop);
+  createTexture(scene, TextureKey.Backdrop, GAME_WIDTH, GAME_HEIGHT, (ctx) =>
+    drawBackdrop(ctx, 'bar'),
+  );
+  createTexture(scene, TextureKey.BackdropRoom, GAME_WIDTH, GAME_HEIGHT, (ctx) =>
+    drawBackdrop(ctx, 'room'),
+  );
+  createTexture(scene, TextureKey.BackdropWall, GAME_WIDTH, GAME_HEIGHT, (ctx) =>
+    drawBackdrop(ctx, 'wall'),
+  );
   TAPS.forEach((tap, index) =>
     createTexture(scene, handleKey(index), HANDLE.width, HANDLE.height, (ctx) =>
       drawHandle(ctx, fromNumber(tap.colour)),

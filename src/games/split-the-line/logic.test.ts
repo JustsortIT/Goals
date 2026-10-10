@@ -230,20 +230,23 @@ describe('the bonus games', () => {
   if (!bonus) throw new Error('game.json has no bonus games');
 
   it('are read from game.json, or left out, and refused if wrong', () => {
-    expect(bonus.kinds).toEqual(['rapid', 'moving', 'two']);
+    expect(bonus.kinds).toEqual(['rapid', 'darts', 'moving', 'serve', 'two']);
     expect(readGameData({ ...data, bonus: undefined }).bonus).toBeNull();
     expect(() => readGameData({ ...data, bonus: { ...data.bonus, kinds: ['rapid'] } })).toThrow(
       'as many kinds',
     );
     expect(() =>
-      readGameData({ ...data, bonus: { ...data.bonus, kinds: ['rapid', 'moving', 'dance'] } }),
+      readGameData({
+        ...data,
+        bonus: { ...data.bonus, kinds: ['rapid', 'darts', 'moving', 'serve', 'dance'] },
+      }),
     ).toThrow('kinds can only be');
-    expect(() => readGameData({ ...data, bonus: { ...data.bonus, after: [2, 4, 8] } })).toThrow(
-      'before the last pint',
-    );
-    expect(() => readGameData({ ...data, bonus: { ...data.bonus, after: [4, 2, 6] } })).toThrow(
-      'rising',
-    );
+    expect(() =>
+      readGameData({ ...data, bonus: { ...data.bonus, after: [2, 3, 5, 6, 8] } }),
+    ).toThrow('before the last pint');
+    expect(() =>
+      readGameData({ ...data, bonus: { ...data.bonus, after: [4, 2, 5, 6, 7] } }),
+    ).toThrow('rising');
     expect(() =>
       readGameData({
         ...data,
@@ -257,9 +260,12 @@ describe('the bonus games', () => {
 
   it('come up after the pints they are set for, and no others', () => {
     expect(bonusAfter(2, bonus)).toBe('rapid');
-    expect(bonusAfter(4, bonus)).toBe('moving');
-    expect(bonusAfter(6, bonus)).toBe('two');
+    expect(bonusAfter(3, bonus)).toBe('darts');
+    expect(bonusAfter(5, bonus)).toBe('moving');
+    expect(bonusAfter(6, bonus)).toBe('serve');
+    expect(bonusAfter(7, bonus)).toBe('two');
     expect(bonusAfter(1, bonus)).toBeNull();
+    expect(bonusAfter(4, bonus)).toBeNull();
     expect(bonusAfter(8, bonus)).toBeNull();
     expect(bonusAfter(2, null)).toBeNull();
   });

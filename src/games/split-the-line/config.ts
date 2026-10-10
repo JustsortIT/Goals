@@ -1,7 +1,14 @@
 /** The game's numbers and names, in one place. No Phaser imports. */
 import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
 
-export const SceneKey = { Boot: 'Boot', Title: 'Title', Play: 'Play', Over: 'Over' } as const;
+export const SceneKey = {
+  Boot: 'Boot',
+  Title: 'Title',
+  Play: 'Play',
+  Over: 'Over',
+  Darts: 'Darts',
+  Serve: 'Serve',
+} as const;
 
 export const TextureKey = {
   Backdrop: 'tap-backdrop',
@@ -10,7 +17,24 @@ export const TextureKey = {
   Stout: 'tap-stout',
   Shadow: 'tap-shadow',
   Vignette: 'tap-vignette',
+  /** The pub's room, with a bar and no taps (serving), and a wall with nothing on it (darts). */
+  BackdropRoom: 'tap-backdrop-room',
+  BackdropWall: 'tap-backdrop-wall',
+  Board: 'tap-board',
+  DartFlying: 'tap-dart-flying',
+  DartStuck: 'tap-dart-stuck',
 } as const;
+
+/** The drinks a customer can want: stout, lager and red ale. The taps' handles are these colours. */
+export const DRINKS = [
+  { name: 'stout', liquid: 0x1b0e09, head: 0xefe3c8, glow: 0x6b2a14 },
+  { name: 'lager', liquid: 0xe9b92e, head: 0xfffaf0, glow: 0xffe27a },
+  { name: 'red ale', liquid: 0x9c3b15, head: 0xf2e6cf, glow: 0xd9743a },
+] as const;
+export const pintKey = (kind: number): string => `tap-pint-${kind}`;
+export const customerKey = (look: number): string => `tap-customer-${look}`;
+/** How many different customers are drawn. */
+export const LOOKS = 5;
 
 /** Where the game's data is kept for the scenes (`this.registry`). */
 export const DATA_KEY = 'gameData';
@@ -77,3 +101,45 @@ export const PLAY = {
 } as const;
 
 export const SCREEN = { width: GAME_WIDTH, height: GAME_HEIGHT } as const;
+
+/**
+ * The dartboard, as it hangs on the wall. `radius` is the outside of the doubles, in pixels; the
+ * rings are shares of it. They are a little wider than on a real board (a treble is 10% across,
+ * where a real one is 8%), so a finger's timing can hit them. The number ring and the surround
+ * lie outside `radius`.
+ */
+export const BOARD = {
+  x: 240,
+  y: 146,
+  radius: 96,
+  numbers: 107,
+  outer: 117,
+  rings: { bull: 0.06, outerBull: 0.14, trebleIn: 0.54, trebleOut: 0.64, doubleIn: 0.9 },
+  /** How far across the board, as a share of its radius, the crosshair sways either way. */
+  sway: 0.92,
+} as const;
+
+/** Throwing darts: how long a dart is in the air, and how big it looks when it is thrown and when it lands. */
+export const THROW = {
+  flightMs: 230,
+  startScale: 2.1,
+  landScale: 0.9,
+  resultMs: 1500,
+  pauseMs: 520,
+} as const;
+
+/** Serving: where the customers stand along the bar, where the pints come from, and how fast they slide. */
+export const SERVE = {
+  slots: [112, 206, 300, 394],
+  /** The foot of a customer's picture, which is the top of the bar. */
+  standY: 196,
+  pullX: 44,
+  barY: 226,
+  /** Pixels a millisecond. */
+  slideSpeed: 0.85,
+  /** How wide a customer's place is for a tap, and from how far up. */
+  hitHalf: 50,
+  hitTop: 76,
+  /** How long a customer takes to go once they are served, or have given up. */
+  leaveMs: 700,
+} as const;

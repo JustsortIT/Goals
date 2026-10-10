@@ -15,7 +15,14 @@ import {
   TextureKey,
 } from '../config';
 import { Controls } from '../controls';
-import type { BonusKind, GameData } from '../gameData';
+import {
+  isMini,
+  type BonusKind,
+  type GameData,
+  type MiniBonusKind,
+  type PourBonusKind,
+} from '../gameData';
+import type { MiniResult } from '../mini';
 import { GlassView } from '../glassView';
 import { TapsView } from '../tapsView';
 import {
@@ -49,7 +56,7 @@ export interface PlayData {
  * being closed.
  */
 type Phase = 'ready' | 'pouring' | 'result' | 'sliding' | 'intro' | 'waiting' | 'ending';
-type Mode = 'normal' | BonusKind;
+type Mode = 'normal' | PourBonusKind;
 
 /** One glass being poured: its view, its round, where its tap is, and how far the pour has got. */
 interface Slot {
@@ -79,6 +86,8 @@ const BONUS_WORDS: Record<BonusKind, { name: string; how: string }> = {
   rapid: { name: 'RAPID POUR', how: 'QUICK TAP, NARROW MARK' },
   moving: { name: 'MOVING GLASS', how: 'POUR WHEN UNDER THE TAP' },
   two: { name: 'TWO PINTS', how: 'LEFT AND RIGHT HALVES' },
+  darts: { name: 'DARTS', how: 'TAP TO THROW' },
+  serve: { name: 'SERVE THE PINTS', how: 'TAP WHO WANTS IT' },
 };
 
 /** The two side taps, for the two-pint bonus. */
@@ -326,7 +335,7 @@ export class Play extends Phaser.Scene {
   }
 
   /** The glasses of a bonus game that comes after pint `cleared`. */
-  private setupBonus(kind: BonusKind, cleared: number): void {
+  private setupBonus(kind: PourBonusKind, cleared: number): void {
     const bonus = this.data_.bonus;
     if (!bonus) return;
     const rounds = bonusRounds(kind, cleared, this.data_.pour, bonus, GLASS_HEIGHT);
@@ -387,6 +396,73 @@ export class Play extends Phaser.Scene {
     this.phase = 'ready';
     this.idleMs = 0;
     this.controls.cancel();
+  }
+
+  /**
+   * A mini bonus game: the glass slides away, the game is announced, and then it runs as a scene of
+   * its own while this one is paused. It gives its result back to \miniDone\.
+   */
+  private startMini(kind: MiniBonusKind, cleared: number): void {
+    this.phase = 'sliding';
+    sfx.play('slide');
+    const out = this.slots.map((slot) => slot.view.container);
+    const go = (): void => {
+      this.phase = 'intro';
+      sfx.play('clear');
+      const words = BONUS_WORDS[kind];
+      this.say(words.name, 'BONUS GAME', words.how);
+      this.time.delayedCall(PLAY.introMs, () => {
+        this.say('', '');
+        this.scene.launch(kind === 'darts' ? SceneKey.Darts : SceneKey.Serve, { number: cleared });
+        this.scene.pause();
+      });
+    };
+    if (out.length === 0) {
+      go();
+      return;
+    }
+    out.forEach((container, index) => {
+      this.tweens.add({
+        targets: container,
+        x: container.x + GAME_WIDTH,
+        duration: PLAY.slideMs,
+        ease: 'Quad.easeIn',
+        onComplete: index > 0 ? undefined : go,
+      });
+    });
+  }
+
+  /**
+   * The mini game is over and this scene is about to carry on: it scores, gives a life back for a
+   * bonus cleared, says how it went, and brings the next glass in. Called by the mini game, which
+   * resumes this scene straight after.
+   */
+  miniDone(result: MiniResult): void {
+    const bonus = this.data_.bonus;
+    if (!bonus) return;
+    const total = bonusScore([result.points], bonus);
+    this.score += total;
+    const life = result.cleared && bonus.lifeOnSuccess;
+    if (life) this.lives += 1;
+    this.showHud();
+    this.phase = 'result';
+    this.say(
+      result.cleared ? 'BONUS CLEARED' : 'BONUS MISSED',
+      total > 0 ? `+${total}` : 'NO LIFE LOST',
+      life ? '+1 LIFE' : '',
+    );
+    this.bannerText.setTint(result.cleared ? COLOUR.gold : COLOUR.bad);
+    sfx.play(result.cleared ? 'split' : 'miss');
+    // The finger that ended the mini game is not a pour.
+    this.controls.cancel();
+    this.time.delayedCall(PLAY.resultMs, () => {
+      this.say('', '');
+      this.phase = 'sliding';
+      this.slideIn(
+        () => this.setupNormal(),
+        () => this.ready(),
+      );
+    });
   }
 
   /** A bonus game is announced before it starts. */
@@ -585,6 +661,10 @@ export class Play extends Phaser.Scene {
       this.number += 1;
       sfx.play('clear');
       const kind = bonusAfter(justCleared, this.data_.bonus);
+      if (kind && isMini(kind)) {
+        this.startMini(kind, justCleared);
+        return;
+      }
       if (kind) {
         this.slideTo(
           () => this.setupBonus(kind, justCleared),

@@ -7,7 +7,7 @@
  * the top of the pint (the head) on the middle of the mark on the glass.
  */
 import { POUR } from './config';
-import type { BonusKind, BonusSettings, Difficulty, GameData } from './gameData';
+import type { BonusKind, BonusSettings, Difficulty, GameData, PourBonusKind } from './gameData';
 
 /** One round, as the rules of the game make it from the round's number. */
 export interface Round {
@@ -152,7 +152,7 @@ export function bonusAfter(cleared: number, bonus: BonusSettings | null): BonusK
  * narrower mark; a moving glass is that pint with a quicker tap; two pints are that pint and another.
  */
 export function bonusRounds(
-  kind: BonusKind,
+  kind: PourBonusKind,
   number: number,
   pour: Difficulty,
   bonus: BonusSettings,

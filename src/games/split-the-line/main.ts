@@ -7,8 +7,10 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
 import { COLOUR, DATA_KEY } from './config';
 import type { GameData } from './gameData';
 import { Boot } from './scenes/Boot';
+import { Darts } from './scenes/Darts';
 import { Over } from './scenes/Over';
 import { Play } from './scenes/Play';
+import { Serve } from './scenes/Serve';
 import { Title } from './scenes/Title';
 
 export function run(data: GameData): void {
@@ -27,7 +29,7 @@ export function run(data: GameData): void {
     audio: { noAudio: true },
     // Two fingers, for the two-pint bonus (which can also be played with one).
     input: { activePointers: 3 },
-    scene: [Boot, Title, Play, Over],
+    scene: [Boot, Title, Play, Over, Darts, Serve],
   });
   game.registry.set(DATA_KEY, data);
 

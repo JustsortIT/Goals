@@ -27,8 +27,8 @@
   },
   "splitTolerance": 1.6,
   "bonus": {
-    "after": [2, 4, 6],
-    "kinds": ["rapid", "moving", "two"],
+    "after": [2, 3, 5, 6, 7],
+    "kinds": ["rapid", "darts", "moving", "serve", "two"],
     "multiplier": 2,
     "lifeOnSuccess": true,
     "rapid": {
@@ -44,6 +44,29 @@
     },
     "two": {
       "timeMs": 16000
+    },
+    "darts": {
+      "throws": 3,
+      "targetStart": 36,
+      "targetStep": 6,
+      "periodMs": 3200,
+      "speedUp": 0.08,
+      "timeMs": 22000,
+      "pointsEach": 1
+    },
+    "serve": {
+      "customers": 8,
+      "firstMs": 1000,
+      "gapMs": 1400,
+      "gapStep": 100,
+      "minGapMs": 900,
+      "patienceMs": 6000,
+      "patienceStep": 250,
+      "minPatienceMs": 3400,
+      "pintGapMs": 500,
+      "wrongPenaltyMs": 1500,
+      "needed": 6,
+      "pointsEach": 10
     }
   }
 }
