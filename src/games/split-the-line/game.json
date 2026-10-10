@@ -1,0 +1,20 @@
+{
+  "name": "SPLIT THE LINE",
+  "line": "STOP THE POUR ON THE MARK",
+  "rounds": 8,
+  "drink": { "name": "stout", "liquid": "#1b0e09", "head": "#efe3c8" },
+  "mark": { "colour": "#e8c15a" },
+  "pour": {
+    "flowStart": 36,
+    "flowStep": 4,
+    "surgeStart": 0.1,
+    "surgeStep": 0.04,
+    "bandStart": 14,
+    "bandStep": 1.3,
+    "bandMin": 4,
+    "markLow": 0.38,
+    "markHigh": 0.78
+  },
+  "points": { "close": 100, "split": 200 },
+  "splitTolerance": 1.6
+}
