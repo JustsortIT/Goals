@@ -20,7 +20,13 @@ const game = readGameData(data);
 describe("the game's data", () => {
   it('reads game.json', () => {
     expect(game.name).toBe('PUB QUIZ RUSH');
-    expect(game.rounds).toBe(15);
+    expect(game.rounds).toBe(10);
+    expect(game.categories.length).toBeGreaterThanOrEqual(2);
+    expect(game.difficulties.map((difficulty) => difficulty.name)).toEqual([
+      'EASY',
+      'MEDIUM',
+      'HARD',
+    ]);
     expect(game.questions.length).toBeGreaterThanOrEqual(game.rounds);
   });
 
@@ -32,11 +38,23 @@ describe("the game's data", () => {
     }
   });
 
-  it('has enough of each level to fill a play', () => {
+  it('has enough questions to fill a play of any genre and level, and of mixed', () => {
     for (const level of [1, 2, 3]) {
-      const count = game.questions.filter((question) => question.level === level).length;
-      expect(count).toBeGreaterThanOrEqual(Math.ceil(game.rounds / 3));
+      for (const genre of game.categories) {
+        const count = game.questions.filter(
+          (question) => question.level === level && question.category === genre.id,
+        ).length;
+        expect(count).toBeGreaterThanOrEqual(game.rounds);
+      }
     }
+  });
+
+  it('gets harder and shorter and worth more from easy to hard', () => {
+    const [easy, medium, hard] = game.difficulties;
+    expect(easy.time.startMs).toBeGreaterThan(medium.time.startMs);
+    expect(medium.time.startMs).toBeGreaterThan(hard.time.startMs);
+    expect(easy.multiplier).toBeLessThan(medium.multiplier);
+    expect(medium.multiplier).toBeLessThan(hard.multiplier);
   });
 
   it("says what is wrong with data that is not this game's", () => {
@@ -68,13 +86,25 @@ describe("the game's data", () => {
       wrong({ questions: [{ ...first, text: 'x'.repeat(91) }, ...data.questions.slice(1)] }),
     ).toThrow('plain keyboard');
     expect(wrong({ questions: [first, first, ...data.questions.slice(2)] })).toThrow('twice');
-    expect(wrong({ time: { ...data.time, endMs: 99999 } })).toThrow('endMs');
+    const [easy, ...others] = data.difficulties;
+    expect(
+      wrong({ difficulties: [{ ...easy, time: { ...easy.time, endMs: 99999 } }, ...others] }),
+    ).toThrow('endMs');
+    expect(wrong({ difficulties: [easy] })).toThrow('three difficulties');
+    expect(wrong({ categories: [] })).toThrow('genres');
+    expect(
+      wrong({ questions: [{ ...first, category: 'nowhere' }, ...data.questions.slice(1)] }),
+    ).toThrow('category');
+    expect(
+      wrong({ questions: data.questions.filter((q) => q.category !== 'sport' || q.level !== 3) }),
+    ).toThrow('SPORT');
     expect(wrong({ streakLife: -1 })).toThrow('streakLife');
   });
 });
 
 describe('the order of the questions', () => {
-  const play = (seed: number) => questionOrder(game.questions, game.rounds, seed);
+  const play = (seed: number, category: string | null = null, level: 1 | 2 | 3 = 2) =>
+    questionOrder(game.questions, game.rounds, seed, { category, level });
 
   it('is the same for the same seed, and different for another', () => {
     expect(play(7)).toEqual(play(7));
@@ -89,19 +119,33 @@ describe('the order of the questions', () => {
     }
   });
 
-  it('goes from easy to hard', () => {
-    for (let seed = 1; seed <= 20; seed += 1) {
-      const levels = play(seed).map((index) => game.questions[index].level);
-      expect(levels).toEqual([...levels].sort());
-      expect(levels[0]).toBe(1);
-      expect(levels[levels.length - 1]).toBe(3);
+  it('asks only the genre and level that were chosen', () => {
+    for (const genre of game.categories) {
+      for (const level of [1, 2, 3] as const) {
+        for (const index of play(4, genre.id, level)) {
+          expect(game.questions[index].category).toBe(genre.id);
+          expect(game.questions[index].level).toBe(level);
+        }
+      }
     }
   });
 
-  it('fills in from the nearest level when one has too few', () => {
-    const easy = game.questions.filter((question) => question.level === 1);
-    const order = questionOrder(easy, 6, 3);
-    expect(new Set(order).size).toBe(6);
+  it('mixed asks every genre at the chosen level', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 30; seed += 1) {
+      for (const index of play(seed, null, 3)) {
+        expect(game.questions[index].level).toBe(3);
+        seen.add(game.questions[index].category);
+      }
+    }
+    expect(seen.size).toBe(game.categories.length);
+  });
+
+  it('says so when there are too few questions', () => {
+    const few = game.questions.slice(0, 3);
+    expect(() => questionOrder(few, game.rounds, 1, { category: null, level: 1 })).toThrow(
+      'enough',
+    );
   });
 
   it('moves the right answer about, but never loses it', () => {
@@ -128,14 +172,18 @@ describe('the order of the questions', () => {
 
 describe('the clock and the score', () => {
   it('gets shorter each question, and never shorter than the least', () => {
-    expect(timeFor(1, game.time)).toBe(game.time.startMs);
-    expect(timeFor(2, game.time)).toBeLessThan(timeFor(1, game.time));
-    expect(timeFor(99, game.time)).toBe(game.time.endMs);
+    for (const { time } of game.difficulties) {
+      expect(timeFor(1, time)).toBe(time.startMs);
+      expect(timeFor(2, time)).toBeLessThan(timeFor(1, time));
+      expect(timeFor(99, time)).toBe(time.endMs);
+    }
   });
 
   it('leaves time to read every question, even on the shortest clock', () => {
+    // Each level's questions against that level's shortest clock.
     for (const question of game.questions) {
-      expect(readingMs(question)).toBeLessThanOrEqual(game.time.endMs);
+      const { time } = game.difficulties[question.level - 1];
+      expect(readingMs(question)).toBeLessThanOrEqual(time.endMs);
     }
   });
 
@@ -161,6 +209,14 @@ describe('the clock and the score', () => {
       Math.round((game.points.base + game.points.speedBonus * 0.9) * 2),
     );
     expect(answerPoints(5000, 10000, 2, game.points).streak).toBe(3);
+  });
+
+  it('pays more on a harder level', () => {
+    const base = answerPoints(5000, 10000, 0, game.points).points;
+    expect(answerPoints(5000, 10000, 0, game.points, 2).points).toBe(base * 2);
+    expect(bestScore(game.rounds, game.points, 2)).toBeGreaterThan(
+      bestScore(game.rounds, game.points),
+    );
   });
 
   it('keeps the share of the time in range', () => {
@@ -191,7 +247,12 @@ describe('the clock and the score', () => {
         streak = 0;
         continue;
       }
-      const result = answerPoints(2000, timeFor(number, game.time), streak, game.points);
+      const result = answerPoints(
+        2000,
+        timeFor(number, game.difficulties[1].time),
+        streak,
+        game.points,
+      );
       streak = result.streak;
       score += result.points;
     }

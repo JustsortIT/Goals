@@ -7,6 +7,7 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../../shell/constants';
 import { COLOUR, DATA_KEY } from './config';
 import type { GameData } from './gameData';
 import { Boot } from './scenes/Boot';
+import { Choose } from './scenes/Choose';
 import { Over } from './scenes/Over';
 import { Play } from './scenes/Play';
 import { Title } from './scenes/Title';
@@ -40,7 +41,7 @@ export function run(data: GameData): void {
     audio: { noAudio: true },
     // The mouse and two fingers. A game with on-screen buttons held together needs more.
     input: { activePointers: 1 },
-    scene: [Boot, Title, Play, Over],
+    scene: [Boot, Title, Choose, Play, Over],
   });
   game.registry.set(DATA_KEY, data);
   window.addEventListener('resize', () => game.scale.setZoom(crispZoom()));

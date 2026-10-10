@@ -7,7 +7,7 @@ import { sfx } from '../audio';
 import { BUTTON_COLOURS, COLOUR, DATA_KEY, PLAY, SceneKey, TextureKey } from '../config';
 import type { GameData } from '../gameData';
 import { beginPlay, onKiosk } from '../session';
-import type { PlayData } from './Play';
+import type { ChooseData } from './Choose';
 
 /**
  * The title screen, where a game waits. On a kiosk it waits for a coin: the shell says what to
@@ -89,6 +89,6 @@ export class Title extends Phaser.Scene {
       void this.ask();
       return;
     }
-    this.scene.start(SceneKey.Play, { lives } satisfies PlayData);
+    this.scene.start(SceneKey.Choose, { lives } satisfies ChooseData);
   }
 }

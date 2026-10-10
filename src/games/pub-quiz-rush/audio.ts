@@ -31,7 +31,6 @@ class Sfx {
   private context: AudioContext | null = null;
   private noise: AudioBuffer | null = null;
   private master: GainNode | null = null;
-  private crowd: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
   private pouring: {
     source: AudioBufferSourceNode;
     gain: GainNode;
@@ -163,40 +162,11 @@ class Sfx {
     this.pouring.filter.frequency.setTargetAtTime(2600 - 900 * Math.min(1, level), now, 0.05);
   }
 
-  /** A low murmur of people, for as long as a play lasts. */
-  ambience(on: boolean): void {
-    const context = this.ready(on);
-    if (!context || !this.master || !this.noise) return;
-    if (!on) {
-      this.stopCrowd();
-      return;
-    }
-    if (this.crowd) return;
-    const source = context.createBufferSource();
-    source.buffer = this.noise;
-    source.loop = true;
-    const filter = context.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 420;
-    filter.Q.value = 0.4;
-    const gain = context.createGain();
-    gain.gain.value = 0.06;
-    source.connect(filter).connect(gain).connect(this.master);
-    source.start();
-    this.crowd = { source, gain };
-  }
-
   /** Quietens everything when the venue is silenced part way through a play. */
   refresh(): void {
     if (!this.enabled) {
-      this.stopCrowd();
       this.stopPour();
     }
-  }
-
-  private stopCrowd(): void {
-    this.crowd?.source.stop();
-    this.crowd = null;
   }
 
   private stopPour(): void {

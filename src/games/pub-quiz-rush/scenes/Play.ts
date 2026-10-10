@@ -4,7 +4,7 @@ import { continueGate, type KioskState } from '../../../shell/kiosk';
 import { addText, centerText, QuizText } from '../text';
 import { sfx } from '../audio';
 import { BUTTON_COLOURS, COLOUR, DATA_KEY, LAYOUT, PLAY, SceneKey, TextureKey } from '../config';
-import type { GameData } from '../gameData';
+import type { Difficulty, GameData } from '../gameData';
 import {
   answerPoints,
   ask,
@@ -20,6 +20,9 @@ import type { OverData } from './Over';
 
 export interface PlayData {
   lives: number;
+  /** The genre chosen (null for mixed) and the level, 1 to 3. */
+  category: string | null;
+  level: 1 | 2 | 3;
 }
 
 /**
@@ -69,12 +72,18 @@ export class Play extends Phaser.Scene {
   private phase: Phase = 'thinking';
   private score = 0;
   private lives = 0;
+  private category: string | null = null;
+  private level: 1 | 2 | 3 = 2;
   private streak = 0;
   /** Which question this is, from 1, which of the game's they are, and the seed they were picked with. */
   private number = 1;
   private order: number[] = [];
   private seed = 0;
   private asked!: Asked;
+
+  private get difficulty(): Difficulty {
+    return this.data_.difficulties[this.level - 1];
+  }
   private clockMs = 0;
   private limitMs = 0;
   private leftMs = 0;
@@ -87,6 +96,8 @@ export class Play extends Phaser.Scene {
   // The scene object is used again for every play, so everything is set afresh here.
   init(data: PlayData): void {
     this.lives = data.lives;
+    this.category = data.category;
+    this.level = data.level;
     this.score = 0;
     this.streak = 0;
     this.number = 1;
@@ -104,7 +115,10 @@ export class Play extends Phaser.Scene {
 
   create(): void {
     this.data_ = this.registry.get(DATA_KEY) as GameData;
-    this.order = questionOrder(this.data_.questions, this.data_.rounds, this.seed);
+    this.order = questionOrder(this.data_.questions, this.data_.rounds, this.seed, {
+      category: this.category,
+      level: this.level,
+    });
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0).setDepth(6);
@@ -182,9 +196,7 @@ export class Play extends Phaser.Scene {
       (state) => this.heard(state),
     );
     this.coins.start();
-    sfx.ambience(true);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      sfx.ambience(false);
       void this.coins.end();
     });
   }
@@ -205,7 +217,7 @@ export class Play extends Phaser.Scene {
   private showQuestion(): void {
     const question = this.data_.questions[this.order[this.number - 1]];
     this.asked = ask(question, this.seed + this.number * 31);
-    this.limitMs = timeFor(this.number, this.data_.time);
+    this.limitMs = timeFor(this.number, this.difficulty.time);
     // A short breath before the clock runs, so the first words can be read.
     this.clockMs = -PLAY.startMs;
     this.phase = 'thinking';
@@ -275,6 +287,7 @@ export class Play extends Phaser.Scene {
         this.limitMs,
         this.streak,
         this.data_.points,
+        this.difficulty.multiplier,
       );
       this.streak = result.streak;
       const points = this.gone.length > 0 ? fiftyFiftyPoints(result.points) : result.points;

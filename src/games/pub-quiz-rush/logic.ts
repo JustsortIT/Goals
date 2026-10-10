@@ -2,12 +2,12 @@
  * The rules of the game as plain sums, with no Phaser in them, so they can be tested
  * (`logic.test.ts`, `npm test`). Keep the rules here and the drawing in the scenes.
  *
- * A play asks `rounds` questions, easy ones first and the hard ones last, in an order made from a
- * seed (so no two plays are the same, and a test can play one). Each question has a clock that is
- * shorter the further on it comes. A right answer scores, more for a quick one and more again on a
+ * The player picks a genre and a difficulty, and a play asks `rounds` questions of that genre and
+ * level, in an order made from a seed (so no two plays are the same, and a test can play one). Each
+ * question has a clock that is shorter the further on it comes, and harder levels start shorter. A right answer scores, more for a quick one and more again on a
  * streak; a wrong one, or none in time, costs a life.
  */
-import type { GameData, Question } from './gameData';
+import type { GameData, Question, Time } from './gameData';
 
 /** A small seeded random, the same every time for the same seed. */
 export function seeded(seed: number): () => number {
@@ -30,36 +30,35 @@ function shuffled(count: number, random: () => number): number[] {
   return order;
 }
 
+/** What a play was asked for: a genre (null for mixed, every genre) and a level from 1 to 3. */
+export interface Pick {
+  category: string | null;
+  level: 1 | 2 | 3;
+}
+
 /**
- * Which questions to ask, and in what order: the first third easy, the next medium and the last
- * hard, each picked at random from those of that level. If a level has too few, the nearest level
- * fills in. Never asks one twice.
+ * Which questions to ask, and in what order: `rounds` of those of the genre and the level the
+ * player chose, picked at random by the seed. Never asks one twice. Gives the questions' places in
+ * `questions`.
  */
 export function questionOrder(
   questions: readonly Question[],
   rounds: number,
   seed: number,
+  pick: Pick,
 ): number[] {
-  const order = shuffled(questions.length, seeded(seed));
-  const used = new Set<number>();
-  const picked: number[] = [];
-  for (let position = 0; position < rounds; position += 1) {
-    const wanted = 1 + Math.floor((position * 3) / rounds);
-    let best = -1;
-    let bestGap = Infinity;
-    for (const index of order) {
-      if (used.has(index)) continue;
-      const gap = Math.abs(questions[index].level - wanted);
-      if (gap < bestGap) {
-        best = index;
-        bestGap = gap;
-        if (gap === 0) break;
-      }
-    }
-    used.add(best);
-    picked.push(best);
-  }
-  return picked;
+  const fits = questions
+    .map((question, index) => ({ question, index }))
+    .filter(
+      ({ question }) =>
+        question.level === pick.level &&
+        (pick.category === null || question.category === pick.category),
+    );
+  if (fits.length < rounds)
+    throw new Error('There are not enough questions for that genre and level.');
+  return shuffled(fits.length, seeded(seed))
+    .slice(0, rounds)
+    .map((at) => fits[at].index);
 }
 
 /** A question with its answers in a new order, and where the right one went. */
@@ -90,7 +89,7 @@ export function fiftyFifty(correct: number, seed: number): number[] {
 export const fiftyFiftyPoints = (points: number): number => Math.round(points / 2);
 
 /** How long the question that comes `number`th (from 1) lasts: shorter each time, down to the least. */
-export function timeFor(number: number, time: GameData['time']): number {
+export function timeFor(number: number, time: Time): number {
   return Math.max(time.endMs, time.startMs - time.stepMs * (number - 1));
 }
 
@@ -100,12 +99,14 @@ export function answerPoints(
   timeMs: number,
   streakBefore: number,
   points: GameData['points'],
+  multiplier = 1,
 ): { points: number; streak: number } {
   const streak = streakBefore + 1;
   const quick = Math.min(1, Math.max(0, timeLeftMs / timeMs));
   // Each right answer in a row adds a quarter, up to doubled.
-  const multiplier = 1 + 0.25 * Math.min(streak - 1, 4);
-  return { points: Math.round((points.base + points.speedBonus * quick) * multiplier), streak };
+  const streakMultiplier = 1 + 0.25 * Math.min(streak - 1, 4);
+  const worth = (points.base + points.speedBonus * quick) * streakMultiplier * multiplier;
+  return { points: Math.round(worth), streak };
 }
 
 /** Whether a streak this long gives a life back. */
@@ -119,10 +120,10 @@ export function readingMs(question: Question): number {
 }
 
 /** The most a perfect play can score: every question right and answered at once, on a streak. */
-export function bestScore(rounds: number, points: GameData['points']): number {
+export function bestScore(rounds: number, points: GameData['points'], multiplier = 1): number {
   let total = 0;
   for (let streak = 0; streak < rounds; streak += 1) {
-    total += answerPoints(1, 1, streak, points).points;
+    total += answerPoints(1, 1, streak, points, multiplier).points;
   }
   return total;
 }

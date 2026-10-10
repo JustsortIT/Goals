@@ -23,7 +23,8 @@ function lattice(x: number, y: number): number {
   return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
 
-function drawBackdrop(ctx: Ctx): void {
+/** The brick wall alone, for screens that have no board. */
+function drawWall(ctx: Ctx): void {
   // Brick, a few tones, dimmed so the board and buttons stand out.
   const tones = ['#5a2a21', '#4f241c', '#63302a', '#552820'];
   ctx.fillStyle = '#1f110c';
@@ -40,6 +41,10 @@ function drawBackdrop(ctx: Ctx): void {
   light.addColorStop(1, 'rgba(255,200,130,0)');
   ctx.fillStyle = light;
   ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+}
+
+function drawBackdrop(ctx: Ctx): void {
+  drawWall(ctx);
 
   // The chalkboard: a wooden frame round dark green, with a soft smear of chalk dust.
   const { x, y, width, height } = LAYOUT.board;
@@ -69,6 +74,7 @@ function drawVignette(ctx: Ctx): void {
 
 /** Draws every picture once, before the first scene that wants one. */
 export function createTextures(scene: Phaser.Scene): void {
+  createTexture(scene, TextureKey.Wall, drawWall);
   createTexture(scene, TextureKey.Backdrop, drawBackdrop);
   createTexture(scene, TextureKey.Vignette, drawVignette);
 }

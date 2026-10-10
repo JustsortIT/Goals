@@ -1,8 +1,18 @@
 /** The game's numbers and names, in one place. No Phaser imports. */
 
-export const SceneKey = { Boot: 'Boot', Title: 'Title', Play: 'Play', Over: 'Over' } as const;
+export const SceneKey = {
+  Boot: 'Boot',
+  Title: 'Title',
+  Choose: 'Choose',
+  Play: 'Play',
+  Over: 'Over',
+} as const;
 
-export const TextureKey = { Backdrop: 'quiz-backdrop', Vignette: 'quiz-vignette' } as const;
+export const TextureKey = {
+  Wall: 'quiz-wall',
+  Backdrop: 'quiz-backdrop',
+  Vignette: 'quiz-vignette',
+} as const;
 
 /** Where the game's data is kept for the scenes (`this.registry`). */
 export const DATA_KEY = 'gameData';
@@ -19,6 +29,12 @@ export const COLOUR = {
 
 /** The four answer buttons: a colour each, so a player can find theirs at a glance. */
 export const BUTTON_COLOURS = [0xb42a31, 0x1f4f93, 0x1f6a3c, 0xb8892a] as const;
+
+/** The genre buttons: the four above and two more. */
+export const GENRE_COLOURS = [...BUTTON_COLOURS, 0x6d3a8f, 0x1f7f86, 0x8a4b2a, 0x56606e] as const;
+
+/** Easy, medium and hard. */
+export const LEVEL_COLOURS = [0x2f8f4e, 0xc08a1f, 0xb83a2e] as const;
 
 /** Where things are on the 480 by 270 screen. */
 export const LAYOUT = {
@@ -40,4 +56,6 @@ export const PLAY = {
   /** A short breath before a question's clock starts, so the words can be read. */
   startMs: 450,
   winMs: 1800,
+  /** How long a player who has paid may leave the choosing before a mixed, medium play starts. */
+  chooseMs: 25_000,
 } as const;
