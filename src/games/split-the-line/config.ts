@@ -32,8 +32,8 @@ export const COLOUR = {
  */
 export const GLASS = {
   x: 296,
-  top: 70,
-  bottom: 226,
+  top: 84,
+  bottom: 240,
   topInner: 84,
   bottomInner: 60,
 } as const;
@@ -43,7 +43,7 @@ export const GLASS_HEIGHT = GLASS.bottom - GLASS.top;
 export const CATCH_HALF = 34;
 
 /** Where the tap's spout is, over the glass. */
-export const SPOUT = { x: GLASS.x, y: 58 } as const;
+export const SPOUT = { x: GLASS.x, y: 72 } as const;
 
 /** The tap: how quickly it opens and shuts (the time it takes to get most of the way). */
 export const POUR = { openMs: 110, closeMs: 150 } as const;

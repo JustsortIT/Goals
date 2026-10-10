@@ -95,58 +95,36 @@ const PANEL_TOP = 148;
  * The wall behind the bar: brick, panelling, the mirrored shelves and their bottles.
  * ---------------------------------------------------------------------------------------- */
 
-const BRICKS = ['#6e3427', '#5f2b21', '#793c2d', '#582720', '#6a3125', '#7f4231', '#4f241c'].map(
-  rgb,
-);
+const BRICKS = ['#6a3226', '#5f2b21', '#733a2b', '#5a2921', '#683025'].map(rgb);
 
 function drawBricks(ctx: Ctx): void {
-  const random = seeded(5);
-  rect(ctx, '#1d110c', 0, 0, GAME_WIDTH, PANEL_TOP + 4);
+  rect(ctx, '#20120d', 0, 0, GAME_WIDTH, PANEL_TOP + 4);
   const brickW = 18;
   const brickH = 8;
   for (let row = 0, y = 0; y < PANEL_TOP; row += 1, y += brickH) {
     const offset = row % 2 === 0 ? 0 : brickW / 2;
     for (let x = -offset, column = 0; x < GAME_WIDTH; x += brickW, column += 1) {
       const tone = BRICKS[Math.floor(lattice(column, row, 4) * BRICKS.length)];
-      const light = 0.86 + lattice(column, row, 9) * 0.28;
+      const light = 0.92 + lattice(column, row, 9) * 0.16;
       const gradient = ctx.createLinearGradient(0, y + 1, 0, y + brickH);
-      gradient.addColorStop(0, css(scaleRgb(mix(tone, [255, 205, 170], 0.1), light)));
-      gradient.addColorStop(1, css(scaleRgb(tone, light * 0.78)));
+      gradient.addColorStop(0, css(scaleRgb(mix(tone, [255, 205, 170], 0.08), light)));
+      gradient.addColorStop(1, css(scaleRgb(tone, light * 0.85)));
       ctx.fillStyle = gradient;
       ctx.fillRect(x + 1, y + 1, brickW - 1, brickH - 1);
-      // Pits and flecks in the brick.
-      for (let speck = 0; speck < 5; speck += 1) {
-        ctx.fillStyle = random() < 0.55 ? 'rgba(0,0,0,0.18)' : 'rgba(255,200,160,0.1)';
-        ctx.fillRect(
-          x + 1 + Math.floor(random() * (brickW - 2)),
-          y + 1 + Math.floor(random() * (brickH - 2)),
-          1 + (random() < 0.3 ? 1 : 0),
-          1,
-        );
-      }
     }
   }
   // Dim the wall overall, so the lamps are what light it.
   rect(ctx, 'rgba(18,7,3,0.3)', 0, 0, GAME_WIDTH, PANEL_TOP + 4);
 }
-
 function drawPanelling(ctx: Ctx): void {
-  const random = seeded(8);
   for (let x = 0; x < GAME_WIDTH; x += 14) {
     const board = ctx.createLinearGradient(x, 0, x + 14, 0);
-    board.addColorStop(0, '#26150b');
-    board.addColorStop(0.16, '#4d2f1b');
+    board.addColorStop(0, '#2a180d');
+    board.addColorStop(0.16, '#4a2d1a');
     board.addColorStop(0.62, '#3a2214');
-    board.addColorStop(1, '#1c0f08');
+    board.addColorStop(1, '#201109');
     ctx.fillStyle = board;
     ctx.fillRect(x, PANEL_TOP, 14, BAR_BACK - PANEL_TOP);
-    // The grain: long thin streaks down the board.
-    for (let streak = 0; streak < 4; streak += 1) {
-      const gx = x + 2 + Math.floor(random() * 10);
-      const from = PANEL_TOP + Math.floor(random() * 20);
-      rect(ctx, 'rgba(22,9,3,0.28)', gx, from, 1, 8 + random() * 24);
-      rect(ctx, 'rgba(120,76,44,0.14)', gx + 1, from + 3, 1, 6 + random() * 16);
-    }
   }
   // Shaded where the bar stands in front of it, and the rail along the top.
   const foot = ctx.createLinearGradient(0, PANEL_TOP, 0, BAR_BACK);
@@ -162,7 +140,6 @@ function drawPanelling(ctx: Ctx): void {
   ctx.fillRect(0, PANEL_TOP - 3, GAME_WIDTH, 5);
   rect(ctx, 'rgba(255,214,160,0.45)', 0, PANEL_TOP - 3, GAME_WIDTH, 1);
 }
-
 /** A glass bottle, lit from the left: a bright band, the dark of its far side, a blank paper label. */
 function bottle(
   ctx: Ctx,
@@ -364,101 +341,98 @@ function chromeTube(ctx: Ctx, x: number, y: number, width: number, height: numbe
   ctx.fillRect(x, y, width, height);
 }
 
+/** A tap handle: a lacquered column with a rounded top, a gleam down it and a blank cream badge. */
+function tapHandle(ctx: Ctx, cx: number, colour: Rgb): void {
+  const half = 5;
+  const top = 19;
+  const bottom = 44;
+  const lacquer = ctx.createLinearGradient(cx - half, 0, cx + half, 0);
+  lacquer.addColorStop(0, css(scaleRgb(colour, 0.5)));
+  lacquer.addColorStop(0.24, css(scaleRgb(colour, 1.6)));
+  lacquer.addColorStop(0.6, css(colour));
+  lacquer.addColorStop(1, css(scaleRgb(colour, 0.42)));
+  ctx.fillStyle = lacquer;
+  ctx.beginPath();
+  ctx.moveTo(cx - half, bottom);
+  ctx.lineTo(cx - half, top + 5);
+  ctx.quadraticCurveTo(cx - half, top, cx, top);
+  ctx.quadraticCurveTo(cx + half, top, cx + half, top + 5);
+  ctx.lineTo(cx + half, bottom);
+  ctx.closePath();
+  ctx.fill();
+  rect(ctx, 'rgba(255,255,255,0.5)', cx - half + 2, top + 5, 1, 12);
+  // The badge, blank.
+  rect(ctx, '#f0e8d4', cx - 3, top + 11, 6, 8);
+  rect(ctx, 'rgba(0,0,0,0.25)', cx - 3, top + 18, 6, 1);
+}
+
+/** The taps: a chrome bar on two brackets, and under it, for each, a handle, a faucet and a nozzle. */
 function drawTaps(ctx: Ctx): void {
-  // The beam the taps hang from, a horizontal chrome tube, with brackets up into the ceiling.
-  const beam = ctx.createLinearGradient(0, 35, 0, 43);
-  beam.addColorStop(0, '#59616b');
-  beam.addColorStop(0.3, '#f6fafc');
-  beam.addColorStop(0.55, '#b3bcc4');
+  // The brackets up into the ceiling, and the bar between them.
+  chromeTube(ctx, 222, 0, 5, 46);
+  chromeTube(ctx, 366, 0, 5, 46);
+  const beam = ctx.createLinearGradient(0, 44, 0, 54);
+  beam.addColorStop(0, '#6b737c');
+  beam.addColorStop(0.28, '#fafcfd');
+  beam.addColorStop(0.55, '#b9c2ca');
   beam.addColorStop(1, '#2f363d');
   ctx.fillStyle = beam;
-  ctx.fillRect(218, 35, 156, 8);
-  chromeTube(ctx, 226, 0, 5, 36);
-  chromeTube(ctx, 362, 0, 5, 36);
+  ctx.fillRect(214, 44, 164, 10);
+  rect(ctx, 'rgba(0,0,0,0.3)', 214, 54, 164, 1);
+
   const handles: [number, Rgb][] = [
     [SPOUT.x - 50, rgb('#b42a31')],
     [SPOUT.x, rgb('#1d2025')],
     [SPOUT.x + 50, rgb('#1f6a3c')],
   ];
   for (const [x, colour] of handles) {
-    // The handle: a glossy lacquered column, with a blank cream badge near its top.
-    const lacquer = ctx.createLinearGradient(x - 4, 0, x + 4, 0);
-    lacquer.addColorStop(0, css(scaleRgb(colour, 0.5)));
-    lacquer.addColorStop(0.25, css(scaleRgb(colour, 1.7)));
-    lacquer.addColorStop(0.6, css(colour));
-    lacquer.addColorStop(1, css(scaleRgb(colour, 0.4)));
-    ctx.fillStyle = lacquer;
-    ctx.fillRect(x - 4, 8, 8, 28);
-    rect(ctx, 'rgba(255,255,255,0.5)', x - 3, 10, 1, 22);
-    rect(ctx, '#e8e1cf', x - 3, 15, 6, 7);
-    rect(ctx, 'rgba(0,0,0,0.25)', x - 3, 21, 6, 1);
-    chromeTube(ctx, x - 5, 5, 10, 3);
-    // The collar under the beam, the neck and the nozzle.
-    chromeTube(ctx, x - 5, 43, 10, 6);
-    rect(ctx, 'rgba(0,0,0,0.35)', x - 5, 49, 10, 1);
-    chromeTube(ctx, x - 2, 50, 5, SPOUT.y - 56);
-    chromeTube(ctx, x - 3, SPOUT.y - 6, 7, 6);
-    rect(ctx, '#0d0f12', x - 2, SPOUT.y - 1, 5, 1);
+    tapHandle(ctx, x, colour);
+    // The ferrule where the handle goes into the bar.
+    chromeTube(ctx, x - 6, 41, 12, 4);
+    // The faucet under the bar, its neck, and the flared nozzle with its dark mouth.
+    chromeTube(ctx, x - 8, 55, 16, 7);
+    rect(ctx, 'rgba(0,0,0,0.3)', x - 8, 62, 16, 1);
+    chromeTube(ctx, x - 3, 62, 6, SPOUT.y - 66);
+    chromeTube(ctx, x - 4, SPOUT.y - 4, 9, 4);
+    rect(ctx, '#0b0d10', x - 2, SPOUT.y - 1, 5, 1);
   }
 }
 
 function drawDripTray(ctx: Ctx): void {
-  const tray = { x: GLASS.x - 98, y: GLASS.bottom + 2, w: 196, h: 16 };
-  // A steel frame round a black grate.
+  const tray = { x: GLASS.x - 98, y: GLASS.bottom + 2, w: 196, h: 14 };
+  // A steel frame round a black grate with plain slots.
   const steel = ctx.createLinearGradient(0, tray.y, 0, tray.y + tray.h);
-  steel.addColorStop(0, '#d6dde2');
-  steel.addColorStop(0.5, '#8b949c');
-  steel.addColorStop(1, '#3d444b');
+  steel.addColorStop(0, '#e0e6ea');
+  steel.addColorStop(0.5, '#8f98a0');
+  steel.addColorStop(1, '#3f464d');
   ctx.fillStyle = steel;
   ctx.fillRect(tray.x - 2, tray.y - 1, tray.w + 4, tray.h + 2);
-  rect(ctx, '#0b0c0e', tray.x, tray.y + 1, tray.w, tray.h - 2);
-  for (let x = tray.x + 3; x < tray.x + tray.w - 3; x += 4) {
-    rect(ctx, '#2c2f34', x, tray.y + 2, 1, tray.h - 4);
+  rect(ctx, '#101114', tray.x, tray.y + 1, tray.w, tray.h - 2);
+  for (let y = tray.y + 3; y < tray.y + tray.h - 2; y += 3) {
+    rect(ctx, '#23262b', tray.x + 2, y, tray.w - 4, 1);
   }
-  for (let y = tray.y + 4; y < tray.y + tray.h - 2; y += 4) {
-    rect(ctx, '#17191c', tray.x + 1, y, tray.w - 2, 1);
-  }
-  rect(ctx, 'rgba(255,255,255,0.3)', tray.x - 2, tray.y - 1, tray.w + 4, 1);
-}
-
-function beerMat(ctx: Ctx, x: number, y: number, turn: number): void {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(turn);
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.fillRect(-9, -7, 19, 15);
-  const face = ctx.createLinearGradient(-10, -8, 10, 8);
-  face.addColorStop(0, '#efe4c8');
-  face.addColorStop(1, '#bba97f');
-  ctx.fillStyle = face;
-  ctx.fillRect(-10, -8, 19, 15);
-  rect(ctx, '#7a1f2a', -8, -6, 15, 1);
-  rect(ctx, '#7a1f2a', -8, 4, 15, 1);
-  ctx.restore();
 }
 
 function drawBar(ctx: Ctx): void {
   const rows = GAME_HEIGHT - BAR_BACK;
   const image = ctx.createImageData(GAME_WIDTH, rows);
-  const dark = rgb('#35190d');
-  const light = rgb('#7d4824');
+  const dark = rgb('#3a1c0e');
+  const light = rgb('#80492a');
   // The seams between the planks, which get farther apart as the bar comes towards us.
-  const seams = new Set([9, 22, 39, 60]);
+  const seams = new Set([10, 24, 42, 64]);
   for (let row = 0; row < rows; row += 1) {
     const t = row / rows;
     const base = mix(dark, light, Math.pow(t, 0.7));
     for (let x = 0; x < GAME_WIDTH; x += 1) {
-      // Long grain along the bar, and the finer speckle of the wood.
-      const grain = lattice(Math.floor(x / 55), row, 6) * 0.14 + lattice(x, row, 2) * 0.05;
       // The lamps shine in the polish: soft, wide pools of light under each.
       const pool = (centre: number): number => {
-        const across = (x - centre) / 90;
-        const down = (row - 14) / 22;
+        const across = (x - centre) / 95;
+        const down = (row - 16) / 24;
         return Math.exp(-(across * across + down * down));
       };
-      const shine = Math.min(0.55, (pool(120) + pool(420)) * 0.45);
-      let colour = mix(scaleRgb(base, 0.88 + grain), [255, 214, 150], shine);
-      if (seams.has(row)) colour = scaleRgb(colour, 0.55);
+      const shine = Math.min(0.5, (pool(120) + pool(420)) * 0.42);
+      let colour = mix(base, [255, 214, 150], shine);
+      if (seams.has(row)) colour = scaleRgb(colour, 0.7);
       const at = (row * GAME_WIDTH + x) * 4;
       image.data[at] = colour[0];
       image.data[at + 1] = colour[1];
@@ -482,48 +456,13 @@ function drawBar(ctx: Ctx): void {
   under.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = under;
   ctx.fillRect(0, BAR_BACK + 4, GAME_WIDTH, 8);
-
-  // Rings where glasses have stood, and a pair of blank beer mats.
-  const random = seeded(33);
-  for (let ring = 0; ring < 12; ring += 1) {
-    const x = 20 + random() * (GAME_WIDTH - 40);
-    const y = BAR_BACK + 16 + random() * (rows - 34);
-    ctx.strokeStyle = 'rgba(28,12,5,0.2)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 8, 2.4, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,220,170,0.07)';
-    ctx.beginPath();
-    ctx.ellipse(x, y + 1, 8, 2.4, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  beerMat(ctx, 58, 244, -0.18);
-  beerMat(ctx, 438, 250, 0.22);
   drawDripTray(ctx);
 }
-
 function drawBackdrop(ctx: Ctx): void {
   // The wall is a little out of focus, as a camera focused on the glass would have it.
   ctx.save();
   ctx.filter = 'blur(0.8px)';
   ctx.drawImage(drawWall(), 0, 0);
-  ctx.restore();
-
-  // Bokeh: the lamps' light on glass and brass, caught as soft round points in the blur.
-  const random = seeded(61);
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  for (let point = 0; point < 22; point += 1) {
-    const x = 20 + random() * 440;
-    const y = 36 + random() * 100;
-    const radius = 2 + random() * 3;
-    const bokeh = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    bokeh.addColorStop(0, 'rgba(255,214,150,0.16)');
-    bokeh.addColorStop(1, 'rgba(255,200,130,0)');
-    ctx.fillStyle = bokeh;
-    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-  }
   ctx.restore();
 
   drawLamp(ctx, 120, 20);
@@ -642,7 +581,7 @@ function drawStout(ctx: Ctx, liquid: number): void {
   ctx.fillRect(CENTRE - 40, INSIDE_BOTTOM - 26, 80, 26);
 
   // Bubbles on the glass: many by the walls, a few in the body.
-  for (let bubble = 0; bubble < 200; bubble += 1) {
+  for (let bubble = 0; bubble < 110; bubble += 1) {
     const y = above + Math.floor(random() * GLASS_HEIGHT);
     const { left, right } = edgesAt(y);
     const near = random() < 0.82;
@@ -709,7 +648,7 @@ function drawGlassFront(ctx: Ctx): void {
   ctx.stroke();
 
   // Drops of condensation clinging to the glass.
-  for (let drop = 0; drop < 34; drop += 1) {
+  for (let drop = 0; drop < 10; drop += 1) {
     const y = above + 34 + Math.floor(random() * (GLASS_HEIGHT - 48));
     const { left, right } = edgesAt(y);
     const x = left + 4 + Math.floor(random() * (right - left - 8));

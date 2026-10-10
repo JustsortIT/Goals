@@ -118,13 +118,13 @@ In `game.json`, checked by `gameData.ts`:
 None from outside: everything is drawn in code (`art.ts`, `glassView.ts`), aiming at a photograph's
 look rather than pixel art's. A pub's own art would be:
 
-- **The backdrop, 480 by 270**: a brick wall and wood panelling and two mirrored back-bar shelf units
-  with bottles (blank labels), drawn a little out of focus (a 0.8 px blur, as if the camera were
-  focused on the glass), two copper pendant lamps with a cone of light and a glow, soft bokeh points,
-  a row of three chrome taps with lacquered blank handles (the middle one pours, its spout at x 296,
-  y 58), a brass rail at y 196, a polished bar that shines under the lamps with a drip tray and two
-  blank beer mats. No lettering.
-- **The glass, in three pictures of 104 by 170** that line up: its back (a faint tint and the far
+- **The backdrop, 480 by 270**, kept clean: a brick wall and wood panelling and two mirrored
+  back-bar shelf units with bottles (blank labels), drawn a little out of focus (a 0.8 px blur, as if
+  the camera were focused on the glass), two copper pendant lamps with a cone of light and a glow,
+  a chrome bar on two brackets with three taps hanging from it (a lacquered blank handle, a faucet
+  and a flared nozzle each; the middle one pours, its nozzle mouth at x 296, y 72), a brass rail at
+  y 196, a smooth polished bar that shines under the lamps, and a plain steel drip tray. No
+  lettering, and no clutter: no flecks, grain, rings or mats.- **The glass, in three pictures of 104 by 170** that line up: its back (a faint tint and the far
   half of the rim), the drink (the whole glass full: ruby at the edges, black in the middle, bubbles
   on the glass; it is cropped from the bottom to show how full the glass is) and its front (thick
   walls with light along them as smooth lines, the lamps' reflections, the lens of the foot, the near

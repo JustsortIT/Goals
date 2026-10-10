@@ -10,7 +10,7 @@ import { GLASS, GLASS_HEIGHT, TextureKey } from './config';
 import { glassWidthAt } from './logic';
 
 /** The bubbles that run down the inside of a pint of stout after the pour: how many, and for how long. */
-const CASCADE = { count: 56, afterMs: 3400 } as const;
+const CASCADE = { count: 40, afterMs: 3400 } as const;
 /** The cloudy surge under the head is drawn in this many slices, each fainter than the one above. */
 const SURGE = { slices: 9, depth: 30 } as const;
 

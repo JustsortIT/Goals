@@ -110,7 +110,6 @@ export class Play extends Phaser.Scene {
   private scoreText!: Phaser.GameObjects.BitmapText;
   private roundText!: Phaser.GameObjects.BitmapText;
   private livesText!: Phaser.GameObjects.BitmapText;
-  private timerText!: Phaser.GameObjects.BitmapText;
   private plaque!: Phaser.GameObjects.Rectangle;
   private bannerText!: Phaser.GameObjects.BitmapText;
   private bannerSub!: Phaser.GameObjects.BitmapText;
@@ -178,10 +177,6 @@ export class Play extends Phaser.Scene {
     this.scoreText = addPixelText(this, 8, 4, '').setDepth(5);
     this.roundText = addPixelText(this, 0, 4, '').setDepth(5).setTint(COLOUR.gold);
     this.livesText = addPixelText(this, 0, 4, '').setDepth(5);
-    this.timerText = addPixelText(this, 0, 0, '', FONT_SIZE.medium)
-      .setDepth(5)
-      .setTint(COLOUR.gold)
-      .setVisible(false);
 
     // A dark board behind the words, so they can be read against the shelves.
     this.plaque = this.add
@@ -608,25 +603,23 @@ export class Play extends Phaser.Scene {
       g.fillRect(x, SPOUT.y, width, length);
       g.fillStyle(0x5a3320, 0.9);
       g.fillRect(x, SPOUT.y, 1, length);
-      // Light running down the stream, so it looks like moving liquid.
-      g.fillStyle(0xd9b48a, 0.55);
-      for (let spot = 0; spot < length; spot += 11) {
-        g.fillRect(x + width - 1, SPOUT.y + ((spot + this.timeMs * 0.32) % length), 1, 3);
-      }
+      // A clean gleam down the stream, on the side the light comes from.
+      g.fillStyle(0xb08a62, 0.5);
+      g.fillRect(x + (width > 2 ? 1 : 0), SPOUT.y, 1, length);
       // Foam where it lands: on the stout, or splashing on the bar.
       g.fillStyle(missing ? this.data_.drink.liquid : this.data_.drink.head, 0.7);
       g.fillEllipse(slot.spoutX, landY, width * 2 + 8, 3);
     }
   }
 
+  /** A bonus game's clock, in the status bar where the round is told, going red in its last two seconds. */
   private showTimer(): void {
-    const show = this.limitMs !== null && (this.phase === 'ready' || this.phase === 'pouring');
-    this.timerText.setVisible(show);
-    if (!show || this.limitMs === null) return;
+    const running = this.limitMs !== null && (this.phase === 'ready' || this.phase === 'pouring');
+    if (!running || this.limitMs === null) return;
     const left = Math.max(0, this.limitMs - this.clockMs);
-    this.timerText.setText(`TIME ${(left / 1000).toFixed(1)}`);
-    this.timerText.setTint(left < 2000 ? COLOUR.bad : COLOUR.gold);
-    centerPixelText(this.timerText, GAME_WIDTH / 2, 30);
+    this.roundText.setText(`BONUS  TIME ${(left / 1000).toFixed(1)}`);
+    this.roundText.setTint(left < 2000 ? COLOUR.bad : COLOUR.gold);
+    centerPixelText(this.roundText, GAME_WIDTH / 2, 9);
   }
 
   /** A shower of sparks from a point: a good pour. */
@@ -725,6 +718,7 @@ export class Play extends Phaser.Scene {
       this.mode === 'normal' ? `PINT ${this.number} OF ${this.data_.rounds}` : 'BONUS GAME',
     );
     centerPixelText(this.roundText, GAME_WIDTH / 2, 9);
+    this.roundText.setTint(COLOUR.gold);
     this.livesText.setText(`LIVES ${this.lives}`);
     this.livesText.setX(GAME_WIDTH - 8 - this.livesText.width);
   }
