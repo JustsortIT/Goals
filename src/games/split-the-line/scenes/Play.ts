@@ -2,9 +2,9 @@ import Phaser from 'phaser';
 import { FONT_SIZE, GAME_HEIGHT, GAME_WIDTH, KIOSK } from '../../../shell/constants';
 import { continueGate, type KioskState } from '../../../shell/kiosk';
 import { addPixelText, centerPixelText } from '../../../shell/pixelFont';
-import { GLASS_ART } from '../art';
 import { sfx } from '../audio';
 import {
+  CATCH_HALF,
   COLOUR,
   DATA_KEY,
   GLASS,
@@ -15,15 +15,21 @@ import {
   TextureKey,
 } from '../config';
 import { Controls } from '../controls';
-import type { GameData } from '../gameData';
+import type { BonusKind, GameData } from '../gameData';
+import { GlassView } from '../glassView';
 import {
+  bonusAfter,
+  bonusCleared,
+  bonusRounds,
+  bonusScore,
   clearsRound,
-  glassWidthAt,
   judge,
   newPour,
   roundFor,
   roundPoints,
   stepPour,
+  swingOffset,
+  underTap,
   type Pour,
   type Round,
   type Verdict,
@@ -36,12 +42,29 @@ export interface PlayData {
 }
 
 /**
- * ready: a glass on the bar, waiting for the finger. pouring: the tap is held open. settling: the
- * finger has lifted but the tap is still shutting. result: the pint is judged. sliding: one glass
- * goes and the next comes. waiting: out of lives on a kiosk, counting down for a coin.
- * ending: the play is being closed.
+ * ready: a glass on the bar, waiting for the finger. pouring: a tap is open or still shutting.
+ * result: the pint is judged. sliding: the glasses go and the next come. intro: a bonus game is
+ * announced. waiting: out of lives on a kiosk, counting down for a coin. ending: the play is
+ * being closed.
  */
-type Phase = 'ready' | 'pouring' | 'settling' | 'result' | 'sliding' | 'waiting' | 'ending';
+type Phase = 'ready' | 'pouring' | 'result' | 'sliding' | 'intro' | 'waiting' | 'ending';
+type Mode = 'normal' | BonusKind;
+
+/** One glass being poured: its view, its round, where its tap is, and how far the pour has got. */
+interface Slot {
+  view: GlassView;
+  round: Round;
+  pour: Pour;
+  /** Where its spout is across the screen, and which part of the screen holds its tap open. */
+  spoutX: number;
+  side: 'any' | 'left' | 'right';
+  started: boolean;
+  /** The finger has lifted, so the tap is shutting and the pour is as good as over. */
+  released: boolean;
+  done: boolean;
+  stoppedAt: number | null;
+  sincePourMs: number;
+}
 
 const VERDICT_WORDS: Record<Verdict, string> = {
   split: 'SPLIT!',
@@ -51,14 +74,27 @@ const VERDICT_WORDS: Record<Verdict, string> = {
   spill: 'SPILLED',
 };
 
-/** The bubbles that run down the inside of a pint of stout after the pour: how many, and for how long. */
-const CASCADE = { count: 40, afterMs: 3200 } as const;
+const BONUS_WORDS: Record<BonusKind, { name: string; how: string }> = {
+  rapid: { name: 'RAPID POUR', how: 'FAST TAP, TINY MARK' },
+  moving: { name: 'MOVING GLASS', how: 'POUR WHEN UNDER THE TAP' },
+  two: { name: 'TWO PINTS', how: 'LEFT AND RIGHT HALVES' },
+};
+
+/** The two side taps, for the two-pint bonus. */
+const SIDE_TAPS = { left: SPOUT.x - 50, right: SPOUT.x + 50 } as const;
+/** The bar's top, where a stream that misses the glass lands. */
+const BAR_Y = GLASS.bottom + 6;
+/** Where the words go: on the wall to the left of the glass. */
+const PANEL_X = 104;
 
 /**
  * The game itself: pull a pint. Hold the screen to pour and let go to stop, so the top of the
  * pint comes to rest on the middle of the mark on the glass. The tap does not stop the moment
  * you let go, and it surges as it runs, so the finger has to lift a little early. A pint stopped
  * inside the mark scores and moves the bar on to a harder pour; anything else is a life lost.
+ * Between some pints there is a bonus game: a rapid pour against the clock, a glass that slides
+ * along the bar, or two pints at once. A bonus never costs a life, and one cleared gives one
+ * back.
  *
  * What is worth keeping when this is replaced with a real game is how it meets the kiosk:
  * lives come from the play that was paid for (`init`), a coin put in at any time adds lives at
@@ -69,16 +105,16 @@ export class Play extends Phaser.Scene {
   private data_!: GameData;
   private controls!: Controls;
   private coins!: CoinWatch;
-  private glass!: Phaser.GameObjects.Container;
-  private liquid!: Phaser.GameObjects.Graphics;
-  private markGfx!: Phaser.GameObjects.Graphics;
+  private views: GlassView[] = [];
   private streamGfx!: Phaser.GameObjects.Graphics;
   private scoreText!: Phaser.GameObjects.BitmapText;
   private roundText!: Phaser.GameObjects.BitmapText;
   private livesText!: Phaser.GameObjects.BitmapText;
+  private timerText!: Phaser.GameObjects.BitmapText;
   private plaque!: Phaser.GameObjects.Rectangle;
   private bannerText!: Phaser.GameObjects.BitmapText;
   private bannerSub!: Phaser.GameObjects.BitmapText;
+  private bannerExtra!: Phaser.GameObjects.BitmapText;
   private hintText!: Phaser.GameObjects.BitmapText;
   private hintSub!: Phaser.GameObjects.BitmapText;
   private wash!: Phaser.GameObjects.Rectangle;
@@ -86,22 +122,21 @@ export class Play extends Phaser.Scene {
   private continueText!: Phaser.GameObjects.BitmapText;
 
   private phase: Phase = 'ready';
+  private mode: Mode = 'normal';
   private score = 0;
   private lives = 0;
   private number = 1;
-  private round!: Round;
-  private pour: Pour = newPour();
-  /** Where the pint stopped, once it has, for the line drawn across the glass. */
-  private stoppedAt: number | null = null;
+  private slots: Slot[] = [];
+  /** The pint the bonus came after: its round sets how hard the bonus is. */
+  private bonusFor = 1;
+  /** How long a bonus's clock has run (from the first finger down), and its limit. */
+  private clockMs = 0;
+  private limitMs: number | null = null;
+  private swingMs = 0;
   private idleMs = 0;
-  private sincePourMs = Infinity;
   private timeMs = 0;
   private leftMs = 0;
   private balanceCents = 0;
-  /** Each bubble's place across the glass, how far down it has run, and how fast. */
-  private bubbles: { across: number; down: number; speed: number }[] = [];
-  /** Where along the head's underside each little bubble sits, so the edge looks frothy. */
-  private froth: number[] = [];
 
   constructor() {
     super(SceneKey.Play);
@@ -113,10 +148,14 @@ export class Play extends Phaser.Scene {
     this.score = 0;
     this.number = 1;
     this.phase = 'ready';
-    this.pour = newPour();
-    this.stoppedAt = null;
+    this.mode = 'normal';
+    this.slots = [];
+    this.views = [];
+    this.bonusFor = 1;
+    this.clockMs = 0;
+    this.limitMs = null;
+    this.swingMs = 0;
     this.idleMs = 0;
-    this.sincePourMs = Infinity;
     this.timeMs = 0;
     this.leftMs = 0;
     this.balanceCents = 0;
@@ -130,21 +169,8 @@ export class Play extends Phaser.Scene {
 
     this.add.image(0, 0, TextureKey.Backdrop).setOrigin(0, 0);
     this.streamGfx = this.add.graphics().setDepth(1.5);
-
-    // The glass is one thing that slides along the bar: the stout, the mark, then the glass.
-    this.liquid = this.add.graphics();
-    this.markGfx = this.add.graphics();
-    const front = this.add
-      .image(GLASS.x - GLASS_ART.width / 2, GLASS.top - GLASS_ART.above, TextureKey.Glass)
-      .setOrigin(0, 0);
-    this.glass = this.add.container(0, 0, [this.liquid, this.markGfx, front]).setDepth(2);
-
-    this.bubbles = Array.from({ length: CASCADE.count }, () => ({
-      across: Math.random(),
-      down: Math.random(),
-      speed: 0.12 + Math.random() * 0.3,
-    }));
-    this.froth = Array.from({ length: 14 }, () => Math.random());
+    // Two glasses, for the two-pint bonus; the second is only shown then.
+    this.views = [new GlassView(this, 2), new GlassView(this, 2)];
 
     this.add.image(0, 0, TextureKey.Vignette).setOrigin(0, 0).setDepth(3.5);
     this.add.rectangle(0, 0, GAME_WIDTH, 16, 0x050301, 0.66).setOrigin(0, 0).setDepth(4);
@@ -152,9 +178,14 @@ export class Play extends Phaser.Scene {
     this.scoreText = addPixelText(this, 8, 4, '').setDepth(5);
     this.roundText = addPixelText(this, 0, 4, '').setDepth(5).setTint(COLOUR.gold);
     this.livesText = addPixelText(this, 0, 4, '').setDepth(5);
+    this.timerText = addPixelText(this, 0, 0, '', FONT_SIZE.medium)
+      .setDepth(5)
+      .setTint(COLOUR.gold)
+      .setVisible(false);
+
     // A dark board behind the words, so they can be read against the shelves.
     this.plaque = this.add
-      .rectangle(120, 122, 216, 66, 0x050301, 0.62)
+      .rectangle(PANEL_X, 122, 188, 66, 0x050301, 0.62)
       .setStrokeStyle(1, COLOUR.gold, 0.45)
       .setDepth(5.5)
       .setVisible(false);
@@ -162,7 +193,11 @@ export class Play extends Phaser.Scene {
       .setDepth(6)
       .setTint(COLOUR.gold)
       .setVisible(false);
-    this.bannerSub = addPixelText(this, 0, 0, '', FONT_SIZE.medium).setDepth(6).setVisible(false);
+    this.bannerSub = addPixelText(this, 0, 0, '', FONT_SIZE.small).setDepth(6).setVisible(false);
+    this.bannerExtra = addPixelText(this, 0, 0, '', FONT_SIZE.small)
+      .setDepth(6)
+      .setTint(COLOUR.quiet)
+      .setVisible(false);
     this.hintText = addPixelText(this, 0, 0, 'HOLD TO POUR', FONT_SIZE.medium)
       .setDepth(6)
       .setTint(COLOUR.gold)
@@ -171,8 +206,8 @@ export class Play extends Phaser.Scene {
       .setDepth(6)
       .setTint(COLOUR.quiet)
       .setVisible(false);
-    centerPixelText(this.hintText, 120, 118);
-    centerPixelText(this.hintSub, 120, 140);
+    centerPixelText(this.hintText, PANEL_X, 114);
+    centerPixelText(this.hintSub, PANEL_X, 136);
     this.tweens.add({
       targets: [this.hintText, this.hintSub],
       alpha: { from: 1, to: 0.45 },
@@ -191,7 +226,7 @@ export class Play extends Phaser.Scene {
       .setDepth(9)
       .setVisible(false);
 
-    this.startRound();
+    this.setupNormal();
     this.showHud();
 
     this.coins = new CoinWatch(
@@ -210,96 +245,302 @@ export class Play extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     this.controls.update();
     this.timeMs += delta;
-    this.sincePourMs += delta;
 
     if (this.phase === 'ready') {
       this.idleMs = this.controls.holding ? 0 : this.idleMs + delta;
-      if (this.controls.holding) this.beginPour();
-    } else if (this.phase === 'pouring' || this.phase === 'settling') {
-      this.runPour(delta);
-    } else if (this.phase === 'waiting') {
+      if (this.slots.some((slot) => this.inputFor(slot))) this.beginPour();
+    }
+    if (this.phase === 'pouring') this.runSlots(delta);
+    if (this.phase === 'waiting') {
       this.leftMs -= delta;
       this.showCount();
       if (this.leftMs <= 0) void this.end(false);
     }
 
-    this.drawStream();
-    this.drawGlass();
+    // The sliding glass moves from when it arrives until it is judged.
+    if (this.mode === 'moving' && (this.phase === 'ready' || this.phase === 'pouring')) {
+      this.swingMs += delta;
+      this.slots[0].view.setCentre(SPOUT.x + this.swingOffset());
+    }
+
+    this.drawStreams();
+    for (const slot of this.slots) {
+      slot.sincePourMs = slot.pour.flow > 1 ? 0 : slot.sincePourMs + delta;
+      slot.view.drawLiquid(
+        slot.pour.fill,
+        slot.pour.flow,
+        this.data_.drink,
+        slot.sincePourMs,
+        delta,
+      );
+    }
+    this.showTimer();
     const showHint =
-      this.phase === 'ready' && (this.number === 1 || this.idleMs > PLAY.hintAfterMs);
+      this.mode === 'normal' &&
+      this.phase === 'ready' &&
+      (this.number === 1 || this.idleMs > PLAY.hintAfterMs);
     this.hintText.setVisible(showHint);
     this.hintSub.setVisible(showHint);
     this.plaque.setVisible(showHint || this.bannerText.visible);
   }
 
-  /** A fresh glass on the bar, with this round's mark on it. */
-  private startRound(): void {
-    this.round = roundFor(this.number, this.data_.pour, GLASS_HEIGHT);
-    this.pour = newPour();
-    this.stoppedAt = null;
-    this.sincePourMs = Infinity;
-    this.drawMark();
+  /* ----------------------------------------------------------------------------------------
+   * Setting up the glasses
+   * -------------------------------------------------------------------------------------- */
+
+  private makeSlot(
+    index: number,
+    round: Round,
+    spoutX: number,
+    side: Slot['side'],
+    centre: number,
+  ): Slot {
+    const view = this.views[index];
+    view.setVisible(true);
+    view.setCentre(centre);
+    view.drawMark(round.centre, round.band, this.data_.mark.colour, null);
+    return {
+      view,
+      round,
+      pour: newPour(),
+      spoutX,
+      side,
+      started: false,
+      released: false,
+      done: false,
+      stoppedAt: null,
+      sincePourMs: Infinity,
+    };
+  }
+
+  /** One glass for the pint that is next. */
+  private setupNormal(): void {
+    this.mode = 'normal';
+    this.limitMs = null;
+    this.clockMs = 0;
+    this.views[1].setVisible(false);
+    const round = roundFor(this.number, this.data_.pour, GLASS_HEIGHT);
+    this.slots = [this.makeSlot(0, round, SPOUT.x, 'any', GLASS.x)];
+    this.showHud();
+  }
+
+  /** The glasses of a bonus game that comes after pint `cleared`. */
+  private setupBonus(kind: BonusKind, cleared: number): void {
+    const bonus = this.data_.bonus;
+    if (!bonus) return;
+    const rounds = bonusRounds(kind, cleared, this.data_.pour, bonus, GLASS_HEIGHT);
+    this.mode = kind;
+    this.bonusFor = cleared;
+    this.clockMs = 0;
+    this.swingMs = 0;
+    this.limitMs = bonus[kind].timeMs;
+    if (kind === 'two') {
+      this.slots = [
+        this.makeSlot(0, rounds[0], SIDE_TAPS.left, 'left', SIDE_TAPS.left),
+        this.makeSlot(1, rounds[1], SIDE_TAPS.right, 'right', SIDE_TAPS.right),
+      ];
+    } else {
+      this.views[1].setVisible(false);
+      this.slots = [this.makeSlot(0, rounds[0], SPOUT.x, 'any', SPOUT.x)];
+    }
+    this.showHud();
+  }
+
+  /**
+   * The glasses slide away along the bar, `setup` puts the next ones out of sight at the other
+   * side, and they slide in, and then `after` runs.
+   */
+  private slideTo(setup: () => void, after: () => void): void {
+    this.phase = 'sliding';
+    sfx.play('slide');
+    const out = this.slots.map((slot) => slot.view.container);
+    out.forEach((container, index) => {
+      this.tweens.add({
+        targets: container,
+        x: container.x + GAME_WIDTH,
+        duration: PLAY.slideMs,
+        ease: 'Quad.easeIn',
+        onComplete: index > 0 ? undefined : () => this.slideIn(setup, after),
+      });
+    });
+  }
+
+  /** The next glasses come in from the left, to where `setup` puts them. */
+  private slideIn(setup: () => void, after: () => void): void {
+    setup();
+    const containers = this.slots.map((slot) => slot.view.container);
+    containers.forEach((container, index) => {
+      const home = container.x;
+      container.x = home - GAME_WIDTH;
+      this.tweens.add({
+        targets: container,
+        x: home,
+        duration: PLAY.slideMs,
+        ease: 'Quad.easeOut',
+        onComplete: index > 0 ? undefined : after,
+      });
+    });
+  }
+
+  private ready(): void {
+    this.phase = 'ready';
+    this.idleMs = 0;
+    this.controls.cancel();
+  }
+
+  /** A bonus game is announced before it starts. */
+  private intro(kind: BonusKind): void {
+    this.phase = 'intro';
+    sfx.play('clear');
+    const words = BONUS_WORDS[kind];
+    this.say(words.name, 'BONUS GAME', words.how);
+    this.time.delayedCall(PLAY.introMs, () => {
+      this.say('', '');
+      this.ready();
+    });
+  }
+
+  /* ----------------------------------------------------------------------------------------
+   * The pour
+   * -------------------------------------------------------------------------------------- */
+
+  private swingOffset(): number {
+    const moving = this.data_.bonus?.moving;
+    return moving ? swingOffset(this.swingMs, moving.amplitude, moving.periodMs) : 0;
+  }
+
+  /** Whether the finger that works this glass's tap is down. */
+  private inputFor(slot: Slot): boolean {
+    if (slot.side === 'left') return this.controls.left;
+    if (slot.side === 'right') return this.controls.right;
+    return this.controls.holding;
+  }
+
+  /** Whether a sliding glass is under the tap, so that what pours goes in it. */
+  private catching(): boolean {
+    return underTap(this.swingOffset(), CATCH_HALF);
   }
 
   private beginPour(): void {
     this.phase = 'pouring';
     this.idleMs = 0;
-    this.sincePourMs = 0;
   }
 
-  /** Runs the tap for a frame, and ends the pour when the glass is full or the stout has stopped rising. */
-  private runPour(delta: number): void {
-    const holding = this.phase === 'pouring' && this.controls.holding;
-    if (this.phase === 'pouring' && !holding) this.phase = 'settling';
-    stepPour(this.pour, holding, delta, this.round, GLASS_HEIGHT);
-    this.sincePourMs = 0;
-    sfx.pour(this.pour.flow / (this.round.flow * 1.4));
+  /** Runs every tap for a frame; when every glass has stopped filling the pour is over. */
+  private runSlots(delta: number): void {
+    this.clockMs += delta;
+    const timeUp = this.limitMs !== null && this.clockMs >= this.limitMs;
+    let loudest = 0;
 
-    if (this.pour.fill >= GLASS_HEIGHT) {
-      this.finish();
-    } else if (this.phase === 'settling' && this.pour.flow < PLAY.stoppedBelow) {
-      this.finish();
+    for (const slot of this.slots) {
+      if (slot.done) continue;
+      const input = !timeUp && this.inputFor(slot);
+      if (!slot.started && (input || timeUp)) slot.started = true;
+      if (!slot.started) continue;
+      // The finger lifting, or the time running out, shuts the tap for good: one pour a pint.
+      if (!input) slot.released = true;
+
+      const before = slot.pour.fill;
+      stepPour(slot.pour, !slot.released, delta, slot.round, GLASS_HEIGHT);
+      // A sliding glass only fills while it is under the tap: the rest goes on the bar.
+      if (this.mode === 'moving' && !this.catching()) slot.pour.fill = before;
+      loudest = Math.max(loudest, slot.pour.flow / (slot.round.flow * 1.4));
+
+      if (slot.pour.fill >= GLASS_HEIGHT || (slot.released && slot.pour.flow < PLAY.stoppedBelow)) {
+        slot.done = true;
+        slot.stoppedAt = slot.pour.fill;
+      }
     }
+    sfx.pour(loudest);
+    if (this.slots.every((slot) => slot.done)) this.finish();
   }
 
-  /** The pint has stopped: judge it, score it, and show which. */
+  /** Every glass has stopped: judge them, score them, and show which. */
   private finish(): void {
     sfx.pour(0);
     this.phase = 'result';
-    this.stoppedAt = this.pour.fill;
-    const { verdict, error } = judge(
-      this.pour.fill,
-      this.round,
-      this.data_.splitTolerance,
-      GLASS_HEIGHT,
-    );
-    const points = roundPoints(verdict, error, this.round, this.data_.points);
+    const colour = this.data_.mark.colour;
+    const results = this.slots.map((slot) => {
+      const fill = slot.stoppedAt ?? slot.pour.fill;
+      slot.view.drawMark(slot.round.centre, slot.round.band, colour, fill);
+      return { slot, ...judge(fill, slot.round, this.data_.splitTolerance, GLASS_HEIGHT) };
+    });
+    if (this.mode === 'normal') this.finishPint(results[0].verdict, results[0].error);
+    else
+      this.finishBonus(
+        results.map((result) => result.verdict),
+        results,
+      );
+    this.showHud();
+  }
+
+  private finishPint(verdict: Verdict, error: number): void {
+    const slot = this.slots[0];
+    const points = roundPoints(verdict, error, slot.round, this.data_.points);
     this.score += points;
     const cleared = clearsRound(verdict);
     if (!cleared) this.lives -= 1;
-    this.drawMark();
 
-    const words = VERDICT_WORDS[verdict];
-    this.say(words, points > 0 ? `+${points}` : 'A LIFE LOST');
+    this.say(VERDICT_WORDS[verdict], points > 0 ? `+${points}` : 'A LIFE LOST');
     this.bannerText.setTint(cleared ? COLOUR.gold : COLOUR.bad);
+    const markY = GLASS.bottom - slot.round.centre;
     if (verdict === 'split') {
       sfx.play('split');
       this.cameras.main.flash(160, 255, 240, 170);
-      this.sparkle(GLASS.x, GLASS.bottom - this.round.centre, [0xffd76a, 0xffffff, 0xffa31a], 34);
+      this.sparkle(slot.view.centre, markY, [0xffd76a, 0xffffff, 0xffa31a], 34);
     } else if (verdict === 'close') {
       sfx.play('close');
-      this.sparkle(GLASS.x, GLASS.bottom - this.round.centre, [0xffd76a, 0xffffff], 14);
+      this.sparkle(slot.view.centre, markY, [0xffd76a, 0xffffff], 14);
     } else if (verdict === 'spill') {
       sfx.play('spill');
-      this.spill();
+      this.spill(slot.view.centre);
     } else {
       sfx.play('miss');
     }
-    this.showHud();
     this.time.delayedCall(PLAY.resultMs, () => this.after(cleared));
   }
 
-  /** After a result: the next glass, a retry of the same one, or the end of the lives. */
+  /** A bonus game is over: it scores, and gives a life back if every glass was stopped in its mark. */
+  private finishBonus(
+    verdicts: Verdict[],
+    results: { slot: Slot; verdict: Verdict; error: number }[],
+  ): void {
+    const bonus = this.data_.bonus;
+    if (!bonus) return;
+    const points = results.map(({ slot, verdict, error }) =>
+      roundPoints(verdict, error, { ...slot.round, number: this.bonusFor }, this.data_.points),
+    );
+    const total = bonusScore(points, bonus);
+    this.score += total;
+    const cleared = bonusCleared(verdicts);
+    const life = cleared && bonus.lifeOnSuccess;
+    if (life) this.lives += 1;
+
+    this.say(
+      cleared ? 'BONUS CLEARED' : 'BONUS MISSED',
+      total > 0 ? `+${total}` : 'NO LIFE LOST',
+      life ? '+1 LIFE' : '',
+    );
+    this.bannerText.setTint(cleared ? COLOUR.gold : COLOUR.bad);
+    if (cleared) {
+      sfx.play(verdicts.every((verdict) => verdict === 'split') ? 'split' : 'close');
+      this.cameras.main.flash(140, 255, 240, 170);
+      for (const { slot } of results) {
+        this.sparkle(slot.view.centre, GLASS.bottom - slot.round.centre, [0xffd76a, 0xffffff], 22);
+      }
+    } else {
+      sfx.play('miss');
+    }
+    this.time.delayedCall(PLAY.resultMs, () => {
+      this.say('', '');
+      this.slideTo(
+        () => this.setupNormal(),
+        () => this.ready(),
+      );
+    });
+  }
+
+  /** After a pint: the next glass, a bonus game, a retry of the same pint, or the end of the lives. */
   private after(cleared: boolean): void {
     this.say('', '');
     if (!cleared && this.lives <= 0) {
@@ -328,161 +569,64 @@ export class Play extends Phaser.Scene {
       return;
     }
     if (cleared) {
+      const justCleared = this.number;
       this.number += 1;
       sfx.play('clear');
-    }
-    this.slideGlass();
-  }
-
-  /** The glass slides away along the bar and the next one slides in. */
-  private slideGlass(): void {
-    this.phase = 'sliding';
-    sfx.play('slide');
-    this.tweens.add({
-      targets: this.glass,
-      x: GAME_WIDTH,
-      duration: PLAY.slideMs,
-      ease: 'Quad.easeIn',
-      onComplete: () => {
-        this.startRound();
-        this.showHud();
-        this.glass.x = -GAME_WIDTH;
-        this.tweens.add({
-          targets: this.glass,
-          x: 0,
-          duration: PLAY.slideMs,
-          ease: 'Quad.easeOut',
-          onComplete: () => this.ready(),
-        });
-      },
-    });
-  }
-
-  private ready(): void {
-    this.phase = 'ready';
-    this.idleMs = 0;
-    this.controls.cancel();
-  }
-
-  /** The stream from the tap to the top of the pint: thicker as the tap opens, with light running down it. */
-  private drawStream(): void {
-    const g = this.streamGfx;
-    g.clear();
-    const flow = this.pour.flow;
-    const pouring =
-      this.phase === 'pouring' || this.phase === 'settling' || this.phase === 'result';
-    if (!pouring || flow < 1) return;
-
-    const width = Math.max(1, Math.round(1 + (flow / (this.round.flow * 1.4)) * 5));
-    const topY = GLASS.bottom - this.pour.fill;
-    const x = SPOUT.x - Math.floor(width / 2);
-    const length = topY - SPOUT.y;
-    if (length <= 0) return;
-    g.fillStyle(this.data_.drink.liquid, 1);
-    g.fillRect(x, SPOUT.y, width, length);
-    g.fillStyle(0x5a3320, 0.9);
-    g.fillRect(x, SPOUT.y, 1, length);
-    // Light running down the stream, so it looks like moving liquid.
-    g.fillStyle(0xd9b48a, 0.55);
-    for (let spot = 0; spot < length; spot += 11) {
-      const y = SPOUT.y + ((spot + this.timeMs * 0.32) % length);
-      g.fillRect(x + width - 1, y, 1, 3);
-    }
-    // Foam where it lands.
-    g.fillStyle(this.data_.drink.head, 0.7);
-    g.fillEllipse(SPOUT.x, topY, width * 2 + 8, 3);
-  }
-
-  /** The stout, its head and the bubbles running down it, in the glass. */
-  private drawGlass(): void {
-    const g = this.liquid;
-    g.clear();
-    const fill = this.pour.fill;
-    if (fill < 0.5) return;
-    const { liquid, head } = this.data_.drink;
-    const cx = GLASS.x;
-    const bottomY = GLASS.bottom;
-    const topY = bottomY - fill;
-    const wBottom = GLASS.bottomInner;
-    const wTop = glassWidthAt(fill, GLASS_HEIGHT, GLASS.bottomInner, GLASS.topInner);
-
-    // The body: nearly black, with a ruby edge where the light comes through at the left.
-    g.fillStyle(liquid, 1);
-    g.fillTriangle(cx - wBottom / 2, bottomY, cx + wBottom / 2, bottomY, cx + wTop / 2, topY);
-    g.fillTriangle(cx - wBottom / 2, bottomY, cx + wTop / 2, topY, cx - wTop / 2, topY);
-    g.fillStyle(0x6b2a14, 0.4);
-    g.fillTriangle(
-      cx - wBottom / 2,
-      bottomY,
-      cx - wBottom / 2 + 3,
-      bottomY,
-      cx - wTop / 2 + 3,
-      topY,
-    );
-    g.fillTriangle(cx - wBottom / 2, bottomY, cx - wTop / 2 + 3, topY, cx - wTop / 2, topY);
-
-    // The bubbles of the surge, running down the inside: only after a pour, and fading away.
-    const cascade = Math.max(0, 1 - this.sincePourMs / CASCADE.afterMs);
-    if (cascade > 0 && fill > 16) {
-      const seconds = this.game.loop.delta / 1000;
-      g.fillStyle(head, 0.75 * Math.min(1, cascade * 1.5));
-      for (const bubble of this.bubbles) {
-        bubble.down += bubble.speed * seconds;
-        if (bubble.down > 1) {
-          bubble.down = 0;
-          bubble.across = Math.random();
-        }
-        const y = topY + 9 + bubble.down * (fill - 11);
-        const width = glassWidthAt(bottomY - y, GLASS_HEIGHT, GLASS.bottomInner, GLASS.topInner);
-        // Bubbles run down the walls: the left and the right edges are where they are.
-        const x = cx + (bubble.across < 0.5 ? -1 : 1) * (width / 2 - 2 - (bubble.across % 0.5) * 8);
-        g.fillRect(Math.round(x), Math.round(y), 1, 2);
+      const kind = bonusAfter(justCleared, this.data_.bonus);
+      if (kind) {
+        this.slideTo(
+          () => this.setupBonus(kind, justCleared),
+          () => this.intro(kind),
+        );
+        return;
       }
     }
-
-    // The head: cream, thick and bubbly at its lower edge, with the surface seen from above.
-    const headHeight = Math.min(fill, 6 + Math.min(4, this.pour.flow * 0.06));
-    g.fillStyle(head, 1);
-    g.fillRect(cx - wTop / 2, topY, wTop, headHeight);
-    this.froth.forEach((offset, index) => {
-      const x = cx - wTop / 2 + (wTop * (index + 0.5)) / this.froth.length;
-      g.fillCircle(x, topY + headHeight + offset * 2, 2.4);
-    });
-    g.fillStyle(0xffffff, 0.35);
-    g.fillRect(cx - wTop / 2 + 2, topY + 1, wTop - 4, 1);
-    g.fillStyle(head, 1);
-    g.fillEllipse(cx, topY, wTop, 5);
-    g.fillStyle(0xfff8e6, 0.7);
-    g.fillEllipse(cx - wTop * 0.12, topY - 0.5, wTop * 0.6, 2.6);
+    this.slideTo(
+      () => this.setupNormal(),
+      () => this.ready(),
+    );
   }
 
-  /** The mark on the glass: a band the width it counts for, a bright line down its middle, and the stop. */
-  private drawMark(): void {
-    const g = this.markGfx;
+  /* ----------------------------------------------------------------------------------------
+   * Drawing
+   * -------------------------------------------------------------------------------------- */
+
+  /** The streams from the taps to the tops of the pints: thicker as a tap opens, with light running down them. */
+  private drawStreams(): void {
+    const g = this.streamGfx;
     g.clear();
-    const { colour } = this.data_.mark;
-    const y = GLASS.bottom - this.round.centre;
-    const { band } = this.round;
-    const width = glassWidthAt(this.round.centre, GLASS_HEIGHT, GLASS.bottomInner, GLASS.topInner);
-    const left = GLASS.x - width / 2;
-
-    g.fillStyle(colour, 0.2);
-    g.fillRect(left, y - band, width, band * 2);
-    g.fillStyle(colour, 0.85);
-    g.fillRect(left, y - band, width, 1);
-    g.fillRect(left, y + band, width, 1);
-    g.fillStyle(0xffffff, 0.95);
-    g.fillRect(left - 2, y, width + 4, 1);
-    // Arrows outside the glass, pointing at the middle of the mark.
-    g.fillStyle(colour, 1);
-    g.fillTriangle(left - 16, y - 5, left - 16, y + 5, left - 5, y);
-    g.fillTriangle(left + width + 16, y - 5, left + width + 16, y + 5, left + width + 5, y);
-
-    if (this.stoppedAt !== null) {
-      const stopY = GLASS.bottom - this.stoppedAt;
-      g.fillStyle(0xff5a4a, 0.95);
-      g.fillRect(left - 6, stopY, width + 12, 1);
+    for (const slot of this.slots) {
+      const flow = slot.pour.flow;
+      if (!slot.started || flow < 1) continue;
+      const missing = this.mode === 'moving' && !this.catching();
+      const width = Math.max(1, Math.round(1 + (flow / (slot.round.flow * 1.4)) * 5));
+      const landY = missing ? BAR_Y : GLASS.bottom - slot.pour.fill;
+      const x = slot.spoutX - Math.floor(width / 2);
+      const length = landY - SPOUT.y;
+      if (length <= 0) continue;
+      g.fillStyle(this.data_.drink.liquid, 1);
+      g.fillRect(x, SPOUT.y, width, length);
+      g.fillStyle(0x5a3320, 0.9);
+      g.fillRect(x, SPOUT.y, 1, length);
+      // Light running down the stream, so it looks like moving liquid.
+      g.fillStyle(0xd9b48a, 0.55);
+      for (let spot = 0; spot < length; spot += 11) {
+        g.fillRect(x + width - 1, SPOUT.y + ((spot + this.timeMs * 0.32) % length), 1, 3);
+      }
+      // Foam where it lands: on the stout, or splashing on the bar.
+      g.fillStyle(missing ? this.data_.drink.liquid : this.data_.drink.head, 0.7);
+      g.fillEllipse(slot.spoutX, landY, width * 2 + 8, 3);
     }
+  }
+
+  private showTimer(): void {
+    const show = this.limitMs !== null && (this.phase === 'ready' || this.phase === 'pouring');
+    this.timerText.setVisible(show);
+    if (!show || this.limitMs === null) return;
+    const left = Math.max(0, this.limitMs - this.clockMs);
+    this.timerText.setText(`TIME ${(left / 1000).toFixed(1)}`);
+    this.timerText.setTint(left < 2000 ? COLOUR.bad : COLOUR.gold);
+    centerPixelText(this.timerText, GAME_WIDTH / 2, 30);
   }
 
   /** A shower of sparks from a point: a good pour. */
@@ -504,12 +648,12 @@ export class Play extends Phaser.Scene {
   }
 
   /** Foam and stout over the rim and down the glass. */
-  private spill(): void {
+  private spill(centre: number): void {
     const { head, liquid } = this.data_.drink;
     const y = GLASS.top;
     for (let drop = 0; drop < 34; drop += 1) {
       const side = drop % 2 === 0 ? -1 : 1;
-      const startX = GLASS.x + side * (GLASS.topInner / 2 - 2);
+      const startX = centre + side * (GLASS.topInner / 2 - 2);
       const bit = this.add.rectangle(startX, y, 3, 3, drop % 3 === 0 ? liquid : head).setDepth(5);
       this.tweens.add({
         targets: bit,
@@ -522,6 +666,10 @@ export class Play extends Phaser.Scene {
     }
   }
 
+  /* ----------------------------------------------------------------------------------------
+   * The kiosk
+   * -------------------------------------------------------------------------------------- */
+
   /** Lives bought by a coin, whenever it went in. In the count, they carry the play on. */
   private addLives(lives: number): void {
     this.lives += lives;
@@ -533,7 +681,10 @@ export class Play extends Phaser.Scene {
     this.wash.setVisible(false);
     this.countText.setVisible(false);
     this.continueText.setVisible(false);
-    this.slideGlass();
+    this.slideTo(
+      () => this.setupNormal(),
+      () => this.ready(),
+    );
   }
 
   /** What the kiosk holds, each time it is asked. Credit short of a life is said, and starts the count again. */
@@ -570,7 +721,9 @@ export class Play extends Phaser.Scene {
 
   private showHud(): void {
     this.scoreText.setText(`SCORE ${this.score}`);
-    this.roundText.setText(`PINT ${this.number} OF ${this.data_.rounds}`);
+    this.roundText.setText(
+      this.mode === 'normal' ? `PINT ${this.number} OF ${this.data_.rounds}` : 'BONUS GAME',
+    );
     centerPixelText(this.roundText, GAME_WIDTH / 2, 9);
     this.livesText.setText(`LIVES ${this.lives}`);
     this.livesText.setX(GAME_WIDTH - 8 - this.livesText.width);
@@ -589,14 +742,20 @@ export class Play extends Phaser.Scene {
     centerPixelText(this.continueText, GAME_WIDTH / 2, GAME_HEIGHT * 0.28);
   }
 
-  /** Big words over the wall to the left of the glass; empty words clear them. */
-  private say(main: string, sub: string): void {
+  /** Words over the wall to the left of the glasses, in up to three lines; empty words clear them. */
+  private say(main: string, sub: string, extra = ''): void {
+    // The long ones are written smaller, to stay on the board.
     this.bannerText
       .setText(main)
+      .setFontSize(main.length > 8 ? FONT_SIZE.medium : FONT_SIZE.large)
       .setVisible(main !== '')
       .setTint(COLOUR.gold);
     this.bannerSub.setText(sub).setVisible(sub !== '');
-    centerPixelText(this.bannerText, 120, 104);
-    centerPixelText(this.bannerSub, 120, 132);
+    this.bannerExtra.setText(extra).setVisible(extra !== '');
+    // Two lines sit as a pair in the middle of the board; three spread out to fit.
+    const lines = extra ? [100, 120, 138] : [104, 128, 0];
+    centerPixelText(this.bannerText, PANEL_X, lines[0]);
+    centerPixelText(this.bannerSub, PANEL_X, lines[1]);
+    centerPixelText(this.bannerExtra, PANEL_X, lines[2]);
   }
 }

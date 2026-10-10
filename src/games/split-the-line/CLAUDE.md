@@ -15,6 +15,30 @@ It is the old pub game of splitting the logo on a pint. The mark here is a plain
 a line down its middle, not a brand's logo, because **no brands or logos** may be in a game
 (top-level `CLAUDE.md`), and the picture has no lettering.
 
+## Bonus games
+
+After pints 2, 4 and 6 a bonus game comes up (set in `game.json` under `bonus`). A bonus never costs
+a life. It scores double (`multiplier`), and clearing it (every glass stopped inside its mark) gives
+one life back (`lifeOnSuccess`). A bonus has a clock that starts when the first finger goes down, and
+one pour a glass: the tap shuts for good when the finger lifts or the time runs out.
+
+- **Rapid pour** (after pint 2): that pint's round with a tap 2x as quick, a mark 0.55x as wide and
+  a wilder surge, against a 7 s clock.
+- **Moving glass** (after pint 4): the glass swings along the bar under the tap (a sine, amplitude
+  56 px, 3.6 s a swing) and only fills while it is within `CATCH_HALF` (34 px) of the spout; the rest
+  of the stream splashes on the bar. 16 s clock. The finger just holds; the timing is when to let go,
+  and the glass is only filling part of the time, so the pour is slower.
+- **Two pints** (after pint 6): two glasses under the left and right taps, at once. A finger on the
+  left half of the screen holds the left tap, one on the right half the right tap. 16 s clock. It can
+  be done with ONE finger (pour one glass, lift, move over, pour the other: the test does this), so it
+  does not need two touches at once, but two fingers do it in half the time. **Whether two fingers
+  reach the page on a real kiosk is not yet known: try it.**
+
+All of it is made by rule from the pint just cleared (`bonusRounds` in `logic.ts`), and tested: a
+rapid pour has a finger window over 60 ms and a pour that takes less than its clock; a moving glass is
+under the tap over 30% of the time and the pour fits in 60% of its clock; two pints pour one after the
+other in under 70% of the clock.
+
 ## How it is played with fingers
 
 One finger, no buttons. Touch anywhere and hold: the tap opens. Lift: it shuts. The tap does not
@@ -57,7 +81,8 @@ kiosk a play is 3 lives.
 | `game.json`                 | the content: name, line, rounds, the drink's colours, the mark's, the difficulty |
 | `gameData.ts`               | reads and checks that content (pure)                                             |
 | `logic.ts`, `logic.test.ts` | the rounds, the pour, judging and scoring (pure)                                 |
-| `controls.ts`               | the finger held down anywhere, or the space bar                                  |
+| `controls.ts`               | a finger held down (left and right halves counted apart), or space / arrows      |
+| `glassView.ts`              | one glass on the bar: the stout, the mark and the glass; it slides along         |
 | `session.ts`                | a play as the kiosk sees it: start, coins while it lasts, one score              |
 | `art.ts`                    | the pub, the taps, the bar and the glass, drawn in code once at load             |
 | `audio.ts`                  | sounds made in code: the pour (louder as the tap opens), a ring for a split, ... |
@@ -82,6 +107,10 @@ In `game.json`, checked by `gameData.ts`:
   `bandStart`, `bandStep`, `bandMin`, `markLow`, `markHigh`. The data is refused if the widest mark
   does not fit in the glass.
 - `points` for a close and a split, and `splitTolerance`.
+- `bonus` (or none): `after` (the pints the bonuses come after, rising, before the last) and `kinds`
+  (`rapid`, `moving` or `two` for each), `multiplier` (1 to 5), `lifeOnSuccess`, and the settings
+  of each kind (`rapid`: `flowFactor`, `bandFactor`, `timeMs`; `moving`: `flowFactor`,
+  `amplitude`, `periodMs`, `timeMs`; `two`: `timeMs`).
 
 ## Pictures it needs
 
@@ -96,7 +125,8 @@ None from outside: everything is drawn in code. A pub's own art would be:
 
 Words are written by the game in the pixel font: the title (14 characters), the line (30), the
 verdicts (`SPLIT!`, `CLOSE ENOUGH`, `SHORT`, `OVER`, `SPILLED`), `+n`, `A LIFE LOST`, the hint
-(`HOLD TO POUR`, `LET GO ON THE MARK`), `PINT n OF n`, and the end screens (`LAST ORDERS`,
+(`HOLD TO POUR`, `LET GO ON THE MARK`), `PINT n OF n`, `BONUS GAME`, `RAPID POUR`, `MOVING GLASS`,
+`TWO PINTS`, `BONUS CLEARED`, `BONUS MISSED`, `NO LIFE LOST`, `+1 LIFE`, `TIME n.n`, and the end screens (`LAST ORDERS`,
 `EVERY PINT POURED`, `ENTER YOUR INITIALS`, `THIS WEEK`).
 
 ## How a layout is made
@@ -116,6 +146,7 @@ kiosk's `sound` flag.
 - Letting a player top up a pint, as in life, with a small extra pour.
 - A second kind of drink each round (a lager with a thick head).
 - A split earning a life back.
+- More bonus kinds (a pint with a dropping mark, a three-glass round).
 
 ## Tried on a real touchscreen
 

@@ -291,7 +291,7 @@ function drawBar(context: CanvasRenderingContext2D): void {
     context.stroke();
   }
   // The drip mat under the glass: dark rubber with a grid of holes.
-  const mat = { x: GLASS.x - 56, y: GLASS.bottom + 2, w: 112, h: 16 };
+  const mat = { x: GLASS.x - 98, y: GLASS.bottom + 2, w: 196, h: 16 };
   rect(context, '#0d0d0f', mat.x, mat.y, mat.w, mat.h);
   rect(context, '#1b1c20', mat.x + 1, mat.y + 1, mat.w - 2, 1);
   for (let x = mat.x + 4; x < mat.x + mat.w - 3; x += 5) {

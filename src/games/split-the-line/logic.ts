@@ -7,7 +7,7 @@
  * the top of the pint (the head) on the middle of the mark on the glass.
  */
 import { POUR } from './config';
-import type { Difficulty, GameData } from './gameData';
+import type { BonusKind, BonusSettings, Difficulty, GameData } from './gameData';
 
 /** One round, as the rules of the game make it from the round's number. */
 export interface Round {
@@ -134,3 +134,59 @@ export function glassWidthAt(
 ): number {
   return bottomInner + (topInner - bottomInner) * Math.min(1, Math.max(0, up / glassHeight));
 }
+
+/* ------------------------------------------------------------------------------------------
+ * Bonus games
+ * ---------------------------------------------------------------------------------------- */
+
+/** Which bonus game comes up after pint `cleared` is cleared, if any. */
+export function bonusAfter(cleared: number, bonus: BonusSettings | null): BonusKind | null {
+  if (!bonus) return null;
+  const index = bonus.after.indexOf(cleared);
+  return index >= 0 ? bonus.kinds[index] : null;
+}
+
+/**
+ * The rounds of a bonus game, one for each glass, made by rule from the number of the pint that
+ * has just been cleared: a rapid pour is that pint with a quicker tap, a narrower mark and more
+ * surging; a moving glass is that pint with a quicker tap; two pints are that pint and another.
+ */
+export function bonusRounds(
+  kind: BonusKind,
+  number: number,
+  pour: Difficulty,
+  bonus: BonusSettings,
+  glassHeight: number,
+): Round[] {
+  const base = roundFor(number, pour, glassHeight);
+  if (kind === 'rapid') {
+    return [
+      {
+        ...base,
+        flow: base.flow * bonus.rapid.flowFactor,
+        band: Math.max(3, base.band * bonus.rapid.bandFactor),
+        surge: Math.min(0.6, base.surge + 0.1),
+      },
+    ];
+  }
+  if (kind === 'moving') return [{ ...base, flow: base.flow * bonus.moving.flowFactor }];
+  return [base, roundFor(number + 3, pour, glassHeight)];
+}
+
+/** How far a sliding glass is from the middle, `timeMs` into its swing. */
+export function swingOffset(timeMs: number, amplitude: number, periodMs: number): number {
+  return amplitude * Math.sin((2 * Math.PI * timeMs) / periodMs);
+}
+
+/** Whether a glass `offset` pixels from under the tap is still catching the pour. */
+export const underTap = (offset: number, catchHalf: number): boolean =>
+  Math.abs(offset) <= catchHalf;
+
+/** What a bonus game scores: the pints' points added up, times the bonus's multiplier. */
+export function bonusScore(points: readonly number[], bonus: BonusSettings): number {
+  return points.reduce((sum, one) => sum + one, 0) * bonus.multiplier;
+}
+
+/** A bonus game is cleared when every glass was stopped inside its mark. */
+export const bonusCleared = (verdicts: readonly Verdict[]): boolean =>
+  verdicts.length > 0 && verdicts.every(clearsRound);

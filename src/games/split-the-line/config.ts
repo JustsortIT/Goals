@@ -36,6 +36,9 @@ export const GLASS = {
 } as const;
 export const GLASS_HEIGHT = GLASS.bottom - GLASS.top;
 
+/** How far either side of the middle of the spout a glass can be and still catch the pour. */
+export const CATCH_HALF = 34;
+
 /** Where the tap's spout is, over the glass. */
 export const SPOUT = { x: GLASS.x, y: 58 } as const;
 
@@ -49,6 +52,8 @@ export const PLAY = {
   resultMs: 1700,
   slideMs: 380,
   winMs: 2000,
+  /** How long a bonus game is announced before it starts. */
+  introMs: 2600,
   /** The tap is slow enough to count as stopped below this many pixels a second. */
   stoppedBelow: 0.4,
   /** How long nobody touches the screen before the game shows how to pour. */

@@ -25,8 +25,8 @@ export function run(data: GameData): void {
     },
     // Sounds are made in audio.ts with the browser's own audio, not by Phaser.
     audio: { noAudio: true },
-    // One finger is all this game uses.
-    input: { activePointers: 1 },
+    // Two fingers, for the two-pint bonus (which can also be played with one).
+    input: { activePointers: 3 },
     scene: [Boot, Title, Play, Over],
   });
   game.registry.set(DATA_KEY, data);

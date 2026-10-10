@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { GLASS_HEIGHT, POUR } from './config';
+import { CATCH_HALF, GLASS_HEIGHT, POUR } from './config';
 import { readGameData } from './gameData';
 import {
+  bonusAfter,
+  bonusCleared,
+  bonusRounds,
+  bonusScore,
   clearsRound,
   coastAfterRelease,
   glassWidthAt,
@@ -11,6 +15,8 @@ import {
   roundPoints,
   stepPour,
   surgeAt,
+  swingOffset,
+  underTap,
 } from './logic';
 import data from './game.json';
 
@@ -216,5 +222,112 @@ describe('the glass', () => {
     expect(glassWidthAt(100, 100, 60, 84)).toBe(84);
     expect(glassWidthAt(50, 100, 60, 84)).toBe(72);
     expect(glassWidthAt(500, 100, 60, 84)).toBe(84);
+  });
+});
+
+describe('the bonus games', () => {
+  const bonus = game.bonus;
+  if (!bonus) throw new Error('game.json has no bonus games');
+
+  it('are read from game.json, or left out, and refused if wrong', () => {
+    expect(bonus.kinds).toEqual(['rapid', 'moving', 'two']);
+    expect(readGameData({ ...data, bonus: undefined }).bonus).toBeNull();
+    expect(() => readGameData({ ...data, bonus: { ...data.bonus, kinds: ['rapid'] } })).toThrow(
+      'as many kinds',
+    );
+    expect(() =>
+      readGameData({ ...data, bonus: { ...data.bonus, kinds: ['rapid', 'moving', 'dance'] } }),
+    ).toThrow('kinds can only be');
+    expect(() => readGameData({ ...data, bonus: { ...data.bonus, after: [2, 4, 8] } })).toThrow(
+      'before the last pint',
+    );
+    expect(() => readGameData({ ...data, bonus: { ...data.bonus, after: [4, 2, 6] } })).toThrow(
+      'rising',
+    );
+    expect(() =>
+      readGameData({
+        ...data,
+        bonus: { ...data.bonus, rapid: { ...data.bonus.rapid, timeMs: 10 } },
+      }),
+    ).toThrow('timeMs');
+    expect(() => readGameData({ ...data, bonus: { ...data.bonus, multiplier: 9 } })).toThrow(
+      'multiplier',
+    );
+  });
+
+  it('come up after the pints they are set for, and no others', () => {
+    expect(bonusAfter(2, bonus)).toBe('rapid');
+    expect(bonusAfter(4, bonus)).toBe('moving');
+    expect(bonusAfter(6, bonus)).toBe('two');
+    expect(bonusAfter(1, bonus)).toBeNull();
+    expect(bonusAfter(8, bonus)).toBeNull();
+    expect(bonusAfter(2, null)).toBeNull();
+  });
+
+  it('give a rapid pour a quicker tap and a narrower mark, and two pints two marks', () => {
+    const base = roundFor(2, game.pour, GLASS_HEIGHT);
+    const [rapid] = bonusRounds('rapid', 2, game.pour, bonus, GLASS_HEIGHT);
+    expect(rapid.flow).toBeCloseTo(base.flow * bonus.rapid.flowFactor);
+    expect(rapid.band).toBeLessThan(base.band);
+    expect(rapid.band).toBeGreaterThanOrEqual(3);
+    expect(rapid.centre).toBe(base.centre);
+    expect(bonusRounds('moving', 4, game.pour, bonus, GLASS_HEIGHT)).toHaveLength(1);
+    const two = bonusRounds('two', 6, game.pour, bonus, GLASS_HEIGHT);
+    expect(two).toHaveLength(2);
+    expect(two[0].centre).not.toBe(two[1].centre);
+  });
+
+  it('can be won: a rapid pour has a window for the finger', () => {
+    for (const cleared of bonus.after.filter((_, index) => bonus.kinds[index] === 'rapid')) {
+      const [round] = bonusRounds('rapid', cleared, game.pour, bonus, GLASS_HEIGHT);
+      expect(((2 * round.band) / (round.flow * 1.6)) * 1000).toBeGreaterThan(60);
+      expect(round.centre / round.flow).toBeLessThan(bonus.rapid.timeMs / 1000);
+    }
+  });
+
+  it('can be won: a moving glass is under the tap long enough, with time to spare', () => {
+    // How much of its swing the glass is under the tap.
+    let under = 0;
+    const steps = 3600;
+    for (let step = 0; step < steps; step += 1) {
+      const offset = swingOffset(
+        (step / steps) * bonus.moving.periodMs,
+        bonus.moving.amplitude,
+        bonus.moving.periodMs,
+      );
+      if (underTap(offset, CATCH_HALF)) under += 1;
+    }
+    const share = under / steps;
+    expect(share).toBeGreaterThan(0.3);
+    for (const cleared of bonus.after.filter((_, index) => bonus.kinds[index] === 'moving')) {
+      const [round] = bonusRounds('moving', cleared, game.pour, bonus, GLASS_HEIGHT);
+      const secondsNeeded = round.centre / round.flow / share;
+      expect(secondsNeeded * 1000).toBeLessThan(bonus.moving.timeMs * 0.6);
+    }
+  });
+
+  it('can be won: two pints take less time than there is, poured one after the other', () => {
+    for (const cleared of bonus.after.filter((_, index) => bonus.kinds[index] === 'two')) {
+      const rounds = bonusRounds('two', cleared, game.pour, bonus, GLASS_HEIGHT);
+      const seconds = rounds.reduce((sum, round) => sum + round.centre / round.flow, 0);
+      expect(seconds * 1000).toBeLessThan(bonus.two.timeMs * 0.7);
+    }
+  });
+
+  it('swings about the middle, and a glass off to one side misses the tap', () => {
+    expect(swingOffset(0, 56, 3600)).toBeCloseTo(0);
+    expect(swingOffset(900, 56, 3600)).toBeCloseTo(56);
+    expect(swingOffset(2700, 56, 3600)).toBeCloseTo(-56);
+    expect(underTap(10, CATCH_HALF)).toBe(true);
+    expect(underTap(-CATCH_HALF, CATCH_HALF)).toBe(true);
+    expect(underTap(CATCH_HALF + 1, CATCH_HALF)).toBe(false);
+  });
+
+  it('score double, and are cleared only if every glass was', () => {
+    expect(bonusScore([100, 250], bonus)).toBe(350 * bonus.multiplier);
+    expect(bonusCleared(['split'])).toBe(true);
+    expect(bonusCleared(['split', 'close'])).toBe(true);
+    expect(bonusCleared(['split', 'short'])).toBe(false);
+    expect(bonusCleared([])).toBe(false);
   });
 });
