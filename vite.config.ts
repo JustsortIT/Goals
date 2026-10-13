@@ -1,3 +1,8 @@
+// Vite configuration for phaseplay:
+// - Integrates pretendKiosk for kiosk emulation in dev server
+// - Configures build to output two pages (index list and play page)
+// - Allows ngrok tunnel hosting for testing on phones
+// - Sets test environment to Node for pure logic tests
 import { defineConfig } from 'vitest/config';
 import { pretendKiosk } from './tools/pretend-kiosk.mjs';
 
